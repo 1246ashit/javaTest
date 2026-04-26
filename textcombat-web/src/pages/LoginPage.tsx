@@ -29,7 +29,7 @@ export default function LoginPage() {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
       <Card style={{ width: 380 }}>
-        <Title level={3} style={{ textAlign: 'center' }}>TextCombat 登入</Title>
+        <Title level={3} style={{ textAlign: 'center' }}>異世界打怪遊戲 — 登入</Title>
         <Form layout="vertical" onFinish={onFinish}>
           <Form.Item label="帳號" name="username" rules={[{ required: true, message: '請輸入帳號' }]}>
             <Input autoFocus />

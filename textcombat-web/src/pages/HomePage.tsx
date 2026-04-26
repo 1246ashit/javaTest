@@ -19,7 +19,7 @@ export default function HomePage() {
 
   return (
     <div style={{ padding: 32, maxWidth: 800, margin: '0 auto' }}>
-      <Title level={2}>TextCombat</Title>
+      <Title level={2}>異世界打怪遊戲</Title>
       <Card
         title="我的資料"
         extra={
@@ -35,16 +35,9 @@ export default function HomePage() {
         style={{ marginBottom: 16 }}
       >
         <Descriptions column={1}>
-          <Descriptions.Item label="ID">{user.id}</Descriptions.Item>
-          <Descriptions.Item label="帳號">{user.username}</Descriptions.Item>
           <Descriptions.Item label="顯示名稱">{user.displayName ?? '(未設定)'}</Descriptions.Item>
           <Descriptions.Item label="金幣">
             <Tag color="gold">💰 {user.gold?.toLocaleString() ?? 0}</Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label="角色">
-            <Space>
-              {user.roles.map(r => <Tag color="blue" key={r}>{r}</Tag>)}
-            </Space>
           </Descriptions.Item>
           {isAdmin && (
             <Descriptions.Item label="權限">
