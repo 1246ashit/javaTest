@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type DragEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Button, Card, Col, Descriptions, Empty, InputNumber, Modal, Row, Space, Statistic, Tag, Typography, message,
@@ -11,6 +11,10 @@ import {
 } from '../api/inventory'
 import { goldApi } from '../api/gold'
 import { useAuthStore } from '../store/authStore'
+
+type DragSource =
+  | { kind: 'inventory'; inventoryItemId: number; itemName: string }
+  | { kind: 'slot'; inventoryItemId: number; itemName: string; fromSlot: number }
 
 const { Title, Text } = Typography
 
@@ -43,6 +47,11 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(false)
   const [selectedInvId, setSelectedInvId] = useState<number | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
+
+  // 拖曳：用 ref 而不是 state，避免在 drag 事件中觸發 re-render 把節點重建
+  const dragSourceRef = useRef<DragSource | null>(null)
+  const [dragOverSlot, setDragOverSlot] = useState<number | null>(null)
+  const [dragOverBag, setDragOverBag] = useState(false)
 
   // 選中的可能是背包裡的物品，也可能是某一格上的物品
   const selectedFromItems = data?.items.find(i => i.inventoryItemId === selectedInvId) ?? null
@@ -88,16 +97,6 @@ export default function InventoryPage() {
     try {
       after(await inventoryApi.equip(selected.inventoryItemId))
       message.success(`已裝備：${selected.itemName}`)
-    } catch (e: any) {
-      message.error(e?.response?.data?.error ?? '裝備失敗')
-    }
-  }
-
-  const handleEquipTo = async (slotIndex: number) => {
-    if (!selected) return
-    try {
-      after(await inventoryApi.equip(selected.inventoryItemId, slotIndex))
-      message.success(`已放到第 ${slotIndex} 格`)
     } catch (e: any) {
       message.error(e?.response?.data?.error ?? '裝備失敗')
     }
@@ -152,35 +151,89 @@ export default function InventoryPage() {
     })
   }
 
-  const pickSlotToPlace = () => {
-    if (!selected) return
-    Modal.confirm({
-      title: `裝備 ${selected.itemName} 到哪一格？`,
-      icon: null,
-      width: 420,
-      content: (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 8 }}>
-          {SLOT_INDEXES.map(i => {
-            const occupied = data?.slots[String(i)]
-            return (
-              <Button
-                key={i}
-                block
-                onClick={() => {
-                  Modal.destroyAll()
-                  handleEquipTo(i)
-                }}
-              >
-                第 {i} 格
-                {occupied && <div style={{ fontSize: 11, color: '#888' }}>(將取代 {occupied.itemName})</div>}
-              </Button>
-            )
-          })}
-        </div>
-      ),
-      okButtonProps: { style: { display: 'none' } },
-      cancelText: '取消',
-    })
+  // ========= 拖曳處理 =========
+  const onDragStartInv = (e: DragEvent<HTMLDivElement>, it: InventoryItem) => {
+    dragSourceRef.current = {
+      kind: 'inventory',
+      inventoryItemId: it.inventoryItemId,
+      itemName: it.itemName,
+    }
+    e.dataTransfer.effectAllowed = 'move'
+    // 有些瀏覽器需要 setData 才會觸發 dragstart
+    e.dataTransfer.setData('text/plain', String(it.inventoryItemId))
+  }
+
+  const onDragStartSlot = (e: DragEvent<HTMLDivElement>, slotIndex: number, it: InventoryItem) => {
+    dragSourceRef.current = {
+      kind: 'slot',
+      inventoryItemId: it.inventoryItemId,
+      itemName: it.itemName,
+      fromSlot: slotIndex,
+    }
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', String(it.inventoryItemId))
+  }
+
+  const onDragEnd = () => {
+    dragSourceRef.current = null
+    setDragOverSlot(null)
+    setDragOverBag(false)
+  }
+
+  const onDragOverSlot = (e: DragEvent<HTMLDivElement>, slotIndex: number) => {
+    if (!dragSourceRef.current) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (dragOverSlot !== slotIndex) setDragOverSlot(slotIndex)
+  }
+
+  const onDragLeaveSlot = (slotIndex: number) => {
+    if (dragOverSlot === slotIndex) setDragOverSlot(null)
+  }
+
+  const onDropToSlot = async (e: DragEvent<HTMLDivElement>, slotIndex: number) => {
+    e.preventDefault()
+    const src = dragSourceRef.current
+    onDragEnd()
+    if (!src) return
+    // 拖回原本格 → 不動作
+    if (src.kind === 'slot' && src.fromSlot === slotIndex) return
+    try {
+      after(await inventoryApi.equip(src.inventoryItemId, slotIndex))
+      message.success(
+        src.kind === 'slot'
+          ? `${src.itemName} 移到第 ${slotIndex} 格`
+          : `已裝備 ${src.itemName} 到第 ${slotIndex} 格`,
+      )
+    } catch (err: any) {
+      message.error(err?.response?.data?.error ?? '裝備失敗')
+    }
+  }
+
+  // 從裝備格拖到背包區 → 卸下
+  const onDragOverBag = (e: DragEvent<HTMLDivElement>) => {
+    const src = dragSourceRef.current
+    if (!src || src.kind !== 'slot') return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (!dragOverBag) setDragOverBag(true)
+  }
+
+  const onDragLeaveBag = () => {
+    if (dragOverBag) setDragOverBag(false)
+  }
+
+  const onDropToBag = async (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const src = dragSourceRef.current
+    onDragEnd()
+    if (!src || src.kind !== 'slot') return
+    try {
+      after(await inventoryApi.unequip(src.fromSlot))
+      message.success(`已卸下 ${src.itemName}`)
+    } catch (err: any) {
+      message.error(err?.response?.data?.error ?? '卸下失敗')
+    }
   }
 
   return (
@@ -200,27 +253,43 @@ export default function InventoryPage() {
       </div>
 
       {/* 裝備欄（9 格）+ 總屬性 */}
-      <Card title="裝備欄（9 格，可放任意物品）" size="small" style={{ marginBottom: 16 }} loading={loading && !data}>
+      <Card
+        title="裝備欄（9 格，可放任意物品；可拖曳裝備）"
+        size="small"
+        style={{ marginBottom: 16 }}
+        loading={loading && !data}
+      >
         <Row gutter={16}>
           <Col span={16}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, maxWidth: 520 }}>
               {SLOT_INDEXES.map(i => {
                 const it = data?.slots[String(i)] ?? null
                 const isSelected = selectedSlot === i
+                const isDragOver = dragOverSlot === i
+                const borderColor = isDragOver
+                  ? '#52c41a'
+                  : isSelected ? '#1677ff' : it ? '#faad14' : '#d9d9d9'
                 return (
                   <div
                     key={i}
                     onClick={() => handleClickSlot(i)}
+                    draggable={!!it}
+                    onDragStart={it ? e => onDragStartSlot(e, i, it) : undefined}
+                    onDragEnd={onDragEnd}
+                    onDragOver={e => onDragOverSlot(e, i)}
+                    onDragLeave={() => onDragLeaveSlot(i)}
+                    onDrop={e => onDropToSlot(e, i)}
                     style={{
                       position: 'relative',
-                      border: `2px solid ${isSelected ? '#1677ff' : it ? '#faad14' : '#d9d9d9'}`,
+                      border: `2px ${isDragOver ? 'dashed' : 'solid'} ${borderColor}`,
                       borderRadius: 8,
                       minHeight: 110,
                       padding: 8,
                       textAlign: 'center',
-                      background: it ? '#fffbe6' : '#fafafa',
-                      cursor: 'pointer',
+                      background: isDragOver ? '#f6ffed' : it ? '#fffbe6' : '#fafafa',
+                      cursor: it ? 'grab' : 'pointer',
                       userSelect: 'none',
+                      transition: 'background 0.15s, border-color 0.15s',
                     }}
                   >
                     <div style={{ position: 'absolute', top: 4, left: 6, fontSize: 10, color: '#888' }}>#{i}</div>
@@ -262,9 +331,32 @@ export default function InventoryPage() {
       <Row gutter={16}>
         {/* 背包列表 */}
         <Col span={14}>
-          <Card title={`物品（${data?.items.length ?? 0}）`} size="small" loading={loading && !data}>
+          <Card
+            title={`物品（${data?.items.length ?? 0}）`}
+            size="small"
+            loading={loading && !data}
+            styles={{
+              body: {
+                outline: dragOverBag ? '2px dashed #ff7875' : 'none',
+                outlineOffset: -4,
+                background: dragOverBag ? '#fff1f0' : undefined,
+                borderRadius: 8,
+                transition: 'background 0.15s',
+              },
+            }}
+          >
+            <div
+              onDragOver={onDragOverBag}
+              onDragLeave={onDragLeaveBag}
+              onDrop={onDropToBag}
+            >
+            {dragOverBag && (
+              <div style={{ textAlign: 'center', color: '#ff4d4f', marginBottom: 8, fontSize: 13 }}>
+                放開以卸下
+              </div>
+            )}
             {data && data.items.length === 0 ? (
-              <Empty description="背包是空的" />
+              <Empty description="背包是空的（可從裝備格拖物品到此卸下）" />
             ) : (
               <Row gutter={[8, 8]}>
                 {data?.items.map(it => {
@@ -273,15 +365,19 @@ export default function InventoryPage() {
                     <Col key={it.inventoryItemId} span={4}>
                       <div
                         onClick={() => handleClickInvItem(it)}
+                        draggable={!it.equipped}
+                        onDragStart={!it.equipped ? e => onDragStartInv(e, it) : undefined}
+                        onDragEnd={onDragEnd}
                         style={{
                           position: 'relative',
                           border: `2px solid ${isSelected ? '#1677ff' : it.equipped ? '#faad14' : '#d9d9d9'}`,
                           borderRadius: 6,
                           padding: 6,
                           textAlign: 'center',
-                          cursor: 'pointer',
+                          cursor: it.equipped ? 'pointer' : 'grab',
                           background: it.equipped ? '#fffbe6' : '#fff',
                           userSelect: 'none',
+                          opacity: it.equipped ? 0.85 : 1,
                         }}
                       >
                         <div style={{ fontSize: 28, lineHeight: 1.2 }}>{iconOf(it)}</div>
@@ -318,6 +414,7 @@ export default function InventoryPage() {
                 })}
               </Row>
             )}
+            </div>
           </Card>
         </Col>
 
@@ -371,7 +468,6 @@ export default function InventoryPage() {
                   {!selected.equipped && (
                     <>
                       <Button type="primary" onClick={handleEquipAuto}>裝備（自動）</Button>
-                      <Button onClick={pickSlotToPlace}>選擇格子</Button>
                     </>
                   )}
 
