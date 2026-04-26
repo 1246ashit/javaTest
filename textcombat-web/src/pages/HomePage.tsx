@@ -24,6 +24,7 @@ export default function HomePage() {
         title="我的資料"
         extra={
           <Space>
+            <Button type="primary" onClick={() => navigate('/lobby')}>戰鬥大廳</Button>
             <Button onClick={() => navigate('/inventory')}>背包</Button>
             <Button onClick={() => navigate('/shop')}>商店</Button>
             <Button onClick={() => navigate('/enhance')}>強化</Button>

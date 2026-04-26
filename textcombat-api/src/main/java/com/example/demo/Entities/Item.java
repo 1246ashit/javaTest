@@ -39,6 +39,9 @@ public class Item {
     @Column(name = "icon_url", length = 255)
     private String iconUrl;
 
+    @Column(name = "heal_amount")
+    private Integer healAmount;   // null/0 = 不回血；CONSUMABLE 用
+
     @Column
     private Long price;   // null = 不在商店販售
 
@@ -71,6 +74,9 @@ public class Item {
 
     public String getIconUrl() { return iconUrl; }
     public void setIconUrl(String iconUrl) { this.iconUrl = iconUrl; }
+
+    public Integer getHealAmount() { return healAmount; }
+    public void setHealAmount(Integer healAmount) { this.healAmount = healAmount; }
 
     public Long getPrice() { return price; }
     public void setPrice(Long price) { this.price = price; }

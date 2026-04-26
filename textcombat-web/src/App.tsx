@@ -5,6 +5,8 @@ import HomePage from './pages/HomePage'
 import InventoryPage from './pages/InventoryPage'
 import ShopPage from './pages/ShopPage'
 import EnhancePage from './pages/EnhancePage'
+import LobbyPage from './pages/LobbyPage'
+import RoomPage from './pages/RoomPage'
 import AdminPage from './pages/AdminPage'
 import RequireAuth from './components/RequireAuth'
 import 'antd/dist/reset.css'
@@ -33,6 +35,16 @@ export default function App() {
         <Route path="/enhance" element={
           <RequireAuth>
             <EnhancePage />
+          </RequireAuth>
+        } />
+        <Route path="/lobby" element={
+          <RequireAuth>
+            <LobbyPage />
+          </RequireAuth>
+        } />
+        <Route path="/room/:roomId" element={
+          <RequireAuth>
+            <RoomPage />
           </RequireAuth>
         } />
         <Route path="/admin" element={

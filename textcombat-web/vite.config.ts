@@ -11,6 +11,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,   // 忽略自簽憑證驗證
       },
+      '/ws': {
+        target: 'wss://localhost:8443',
+        ws: true,
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 })
