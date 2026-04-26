@@ -26,6 +26,7 @@ export default function HomePage() {
           <Space>
             <Button onClick={() => navigate('/inventory')}>背包</Button>
             <Button onClick={() => navigate('/shop')}>商店</Button>
+            <Button onClick={() => navigate('/enhance')}>強化</Button>
             {isAdmin && <Button danger onClick={() => navigate('/admin')}>管理員</Button>}
             <Button onClick={handleLogout}>登出</Button>
           </Space>

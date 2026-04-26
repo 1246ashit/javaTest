@@ -4,6 +4,7 @@ import RegisterPage from './pages/RegisterPage'
 import HomePage from './pages/HomePage'
 import InventoryPage from './pages/InventoryPage'
 import ShopPage from './pages/ShopPage'
+import EnhancePage from './pages/EnhancePage'
 import AdminPage from './pages/AdminPage'
 import RequireAuth from './components/RequireAuth'
 import 'antd/dist/reset.css'
@@ -27,6 +28,11 @@ export default function App() {
         <Route path="/shop" element={
           <RequireAuth>
             <ShopPage />
+          </RequireAuth>
+        } />
+        <Route path="/enhance" element={
+          <RequireAuth>
+            <EnhancePage />
           </RequireAuth>
         } />
         <Route path="/admin" element={
