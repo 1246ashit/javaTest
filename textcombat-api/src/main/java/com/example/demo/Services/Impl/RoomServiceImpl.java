@@ -26,7 +26,7 @@ public class RoomServiceImpl implements RoomService {
 
     public static final int PLAYER_MAX_HP = 100;
     public static final Duration ACTIVE_TTL = Duration.ofMinutes(30);
-    public static final Duration ENDED_TTL  = Duration.ofMinutes(3);
+    public static final Duration ENDED_TTL = Duration.ofMinutes(3);
 
     private static final String LOBBY_KEY = "lobby:rooms";
 
@@ -42,15 +42,15 @@ public class RoomServiceImpl implements RoomService {
     private final SimpMessagingTemplate messaging;
 
     public RoomServiceImpl(RedisTemplate<String, RoomDTO> redis,
-                           RedisTemplate<String, String> stringRedis,
-                           BossRepository bossRepo,
-                           UserRepository userRepo,
-                           InventoryService inventoryService,
-                           UserInventoryItemRepository inventoryRepo,
-                           UserEquipmentRepository equipmentRepo,
-                           ItemRepository itemRepo,
-                           GoldService goldService,
-                           SimpMessagingTemplate messaging) {
+            RedisTemplate<String, String> stringRedis,
+            BossRepository bossRepo,
+            UserRepository userRepo,
+            InventoryService inventoryService,
+            UserInventoryItemRepository inventoryRepo,
+            UserEquipmentRepository equipmentRepo,
+            ItemRepository itemRepo,
+            GoldService goldService,
+            SimpMessagingTemplate messaging) {
         this.redis = redis;
         this.stringRedis = stringRedis;
         this.bossRepo = bossRepo;
@@ -69,7 +69,8 @@ public class RoomServiceImpl implements RoomService {
 
     private RoomDTO load(String roomId) {
         RoomDTO r = redis.opsForValue().get(roomKey(roomId));
-        if (r == null) throw new IllegalArgumentException("房間不存在或已關閉");
+        if (r == null)
+            throw new IllegalArgumentException("房間不存在或已關閉");
         return r;
     }
 
@@ -97,13 +98,14 @@ public class RoomServiceImpl implements RoomService {
     }
 
     // ====================================================
-    //  公開 API
+    // 公開 API
     // ====================================================
 
     @Override
     @Transactional
     public RoomDTO createRoom(Long userId, Long bossId, String name) {
-        if (bossId == null) throw new IllegalArgumentException("bossId 為必填");
+        if (bossId == null)
+            throw new IllegalArgumentException("bossId 為必填");
         Boss boss = bossRepo.findById(bossId)
                 .orElseThrow(() -> new IllegalArgumentException("BOSS 不存在"));
         UsersEntity user = userRepo.findById(userId)
@@ -156,7 +158,8 @@ public class RoomServiceImpl implements RoomService {
             // 已在房間中（曾加入過）→ 視為重新進入畫面，不做事
             for (RoomMemberDTO m : r.getMembers()) {
                 if (m.getUserId().equals(userId)) {
-                    if (m.isFled()) throw new IllegalStateException("你已離開過這間房");
+                    if (m.isFled())
+                        throw new IllegalStateException("你已離開過這間房");
                     return r;
                 }
             }
@@ -186,8 +189,10 @@ public class RoomServiceImpl implements RoomService {
         synchronized (lockFor(roomId)) {
             RoomDTO r = load(roomId);
             RoomMemberDTO me = findMember(r, userId);
-            if (me == null) throw new IllegalStateException("你不在這間房");
-            if (me.isFled()) return r;   // 已經離開過
+            if (me == null)
+                throw new IllegalStateException("你不在這間房");
+            if (me.isFled())
+                return r; // 已經離開過
 
             me.setFled(true);
             me.setAlive(false);
@@ -219,7 +224,8 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional
     public RoomDTO act(Long userId, String roomId, RoomAction action, Long inventoryItemId) {
-        if (action == null) throw new IllegalArgumentException("action 為必填");
+        if (action == null)
+            throw new IllegalArgumentException("action 為必填");
         synchronized (lockFor(roomId)) {
             RoomDTO r = load(roomId);
             if (r.getOutcome() != RoomOutcome.ONGOING) {
@@ -229,14 +235,17 @@ public class RoomServiceImpl implements RoomService {
                 throw new IllegalStateException("非玩家階段");
             }
             RoomMemberDTO me = findMember(r, userId);
-            if (me == null || me.isFled()) throw new IllegalStateException("你不在這間房");
-            if (!me.isAlive()) throw new IllegalStateException("你已倒下，無法行動");
-            if (me.isActedThisRound()) throw new IllegalStateException("你本回合已行動過");
+            if (me == null || me.isFled())
+                throw new IllegalStateException("你不在這間房");
+            if (!me.isAlive())
+                throw new IllegalStateException("你已倒下，無法行動");
+            if (me.isActedThisRound())
+                throw new IllegalStateException("你本回合已行動過");
 
             switch (action) {
-                case ATTACK     -> doAttack(r, me);
+                case ATTACK -> doAttack(r, me);
                 case USE_POTION -> doPotion(r, me, userId, inventoryItemId);
-                case SKIP       -> doSkip(r, me);
+                case SKIP -> doSkip(r, me);
             }
             me.setActedThisRound(true);
 
@@ -248,7 +257,8 @@ public class RoomServiceImpl implements RoomService {
             }
             save(r);
             broadcastRoom(r);
-            if (r.getOutcome() != RoomOutcome.ONGOING) broadcastLobby();
+            if (r.getOutcome() != RoomOutcome.ONGOING)
+                broadcastLobby();
             return r;
         }
     }
@@ -256,16 +266,22 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public List<RoomSummaryDTO> listOpen() {
         Set<String> ids = stringRedis.opsForSet().members(LOBBY_KEY);
-        if (ids == null || ids.isEmpty()) return List.of();
+
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+
         List<RoomSummaryDTO> out = new ArrayList<>();
-        for (String id : ids) {
-            RoomDTO r = redis.opsForValue().get(roomKey(id));
-            if (r == null) {
-                stringRedis.opsForSet().remove(LOBBY_KEY, id);
-                continue;
-            }
-            if (r.getOutcome() != RoomOutcome.ONGOING) {
-                stringRedis.opsForSet().remove(LOBBY_KEY, id);
+        List<String> idList = new ArrayList<>(ids);
+        List<String> keys = idList.stream().map(this::roomKey).toList();
+        List<RoomDTO> rooms = redis.opsForValue().multiGet(keys);
+
+        for (int i = 0; i < idList.size(); i++) {
+            String id = idList.get(i);
+            RoomDTO r = rooms == null ? null : rooms.get(i);
+
+            if (r == null || r.getOutcome() != RoomOutcome.ONGOING) {
+                stringRedis.opsForSet().remove(LOBBY_KEY, id); // 順手清掉壞的
                 continue;
             }
             out.add(RoomSummaryDTO.of(r));
@@ -280,7 +296,7 @@ public class RoomServiceImpl implements RoomService {
     }
 
     // ====================================================
-    //  行動實作
+    // 行動實作
     // ====================================================
 
     private void doAttack(RoomDTO r, RoomMemberDTO me) {
@@ -332,12 +348,13 @@ public class RoomServiceImpl implements RoomService {
     }
 
     // ====================================================
-    //  回合推進
+    // 回合推進
     // ====================================================
 
     /** 如果所有 alive 成員都已行動 → 進入 BOSS 階段並執行，再回到下一 round。 */
     private void advanceIfRoundDone(RoomDTO r) {
-        if (r.getOutcome() != RoomOutcome.ONGOING) return;
+        if (r.getOutcome() != RoomOutcome.ONGOING)
+            return;
         List<RoomMemberDTO> active = r.getMembers().stream()
                 .filter(m -> !m.isFled())
                 .toList();
@@ -351,7 +368,8 @@ public class RoomServiceImpl implements RoomService {
         boolean allAliveActed = active.stream()
                 .filter(RoomMemberDTO::isAlive)
                 .allMatch(RoomMemberDTO::isActedThisRound);
-        if (!allAliveActed) return;
+        if (!allAliveActed)
+            return;
         // 已沒有活著的 → 全死
         boolean anyoneAlive = active.stream().anyMatch(RoomMemberDTO::isAlive);
         if (!anyoneAlive) {
@@ -363,13 +381,15 @@ public class RoomServiceImpl implements RoomService {
         r.setPhase(RoomPhase.BOSS);
         bossTurn(r);
 
-        if (r.getOutcome() != RoomOutcome.ONGOING) return;
+        if (r.getOutcome() != RoomOutcome.ONGOING)
+            return;
 
         // 進入下一回合
         r.setRound(r.getRound() + 1);
         r.setPhase(RoomPhase.PLAYER);
         for (RoomMemberDTO m : r.getMembers()) {
-            if (!m.isFled()) m.setActedThisRound(false);
+            if (!m.isFled())
+                m.setActedThisRound(false);
         }
     }
 
@@ -394,7 +414,8 @@ public class RoomServiceImpl implements RoomService {
         // BOSS 攻擊完判斷全死
         boolean anyoneAlive = r.getMembers().stream()
                 .anyMatch(m -> !m.isFled() && m.isAlive());
-        if (!anyoneAlive) defeat(r);
+        if (!anyoneAlive)
+            defeat(r);
     }
 
     private void victory(RoomDTO r) {
@@ -404,12 +425,12 @@ public class RoomServiceImpl implements RoomService {
         long reward = r.getBossRewardGold() == null ? 0 : r.getBossRewardGold();
         if (reward > 0) {
             for (RoomMemberDTO m : r.getMembers()) {
-                if (m.isFled() || !m.isAlive()) continue;
+                if (m.isFled() || !m.isAlive())
+                    continue;
                 try {
                     long bal = goldService.changeGold(
                             m.getUserId(), reward, "BATTLE_REWARD", r.getBossCode(),
-                            "擊敗 " + r.getBossName()
-                    );
+                            "擊敗 " + r.getBossName());
                     r.getLog().add(String.format("%s 獲得金幣 💰 +%d（餘額 %d）",
                             displayOf(m), reward, bal));
                 } catch (Exception e) {
@@ -428,7 +449,7 @@ public class RoomServiceImpl implements RoomService {
     }
 
     // ====================================================
-    //  helpers
+    // helpers
     // ====================================================
 
     private RoomMemberDTO newMember(UsersEntity user, boolean actedThisRound) {
@@ -450,7 +471,8 @@ public class RoomServiceImpl implements RoomService {
 
     private RoomMemberDTO findMember(RoomDTO r, Long userId) {
         for (RoomMemberDTO m : r.getMembers()) {
-            if (m.getUserId().equals(userId)) return m;
+            if (m.getUserId().equals(userId))
+                return m;
         }
         return null;
     }
