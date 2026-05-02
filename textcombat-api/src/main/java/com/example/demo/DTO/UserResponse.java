@@ -5,7 +5,9 @@ import com.example.demo.Entities.UsersEntity;
 
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.Getter;
 
+@Getter
 public class UserResponse {
     private Long id;
     private String username;
@@ -24,11 +26,4 @@ public class UserResponse {
         r.permissions = user.getPermissionCodes();
         return r;
     }
-
-    public Long getId() { return id; }
-    public String getUsername() { return username; }
-    public String getDisplayName() { return displayName; }
-    public Long getGold() { return gold; }
-    public Set<String> getRoles() { return roles; }
-    public Set<String> getPermissions() { return permissions; }
 }

@@ -4,6 +4,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.Getter;
+
+
+@Getter
 public class InventoryResponse {
 
     // 9 格；key = 1~9，值 = 放在該格的物品（可能 null 表示空格）
@@ -26,9 +30,4 @@ public class InventoryResponse {
         this.totalAttack = totalAttack;
         this.totalDefense = totalDefense;
     }
-
-    public Map<Integer, InventoryItemDTO> getSlots() { return slots; }
-    public List<InventoryItemDTO> getItems() { return items; }
-    public int getTotalAttack() { return totalAttack; }
-    public int getTotalDefense() { return totalDefense; }
 }

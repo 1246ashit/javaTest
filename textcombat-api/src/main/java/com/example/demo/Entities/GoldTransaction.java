@@ -2,9 +2,15 @@ package com.example.demo.Entities;
 
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.Getter;
 
 @Entity
 @Table(name = "gold_transactions")
+@Getter                      
+@Setter                      
+@NoArgsConstructor
 public class GoldTransaction {
 
     @Id
@@ -35,18 +41,4 @@ public class GoldTransaction {
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
-    public Long getId() { return id; }
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
-    public Long getAmount() { return amount; }
-    public void setAmount(Long amount) { this.amount = amount; }
-    public Long getBalanceAfter() { return balanceAfter; }
-    public void setBalanceAfter(Long balanceAfter) { this.balanceAfter = balanceAfter; }
-    public String getReason() { return reason; }
-    public void setReason(String reason) { this.reason = reason; }
-    public String getRefId() { return refId; }
-    public void setRefId(String refId) { this.refId = refId; }
-    public String getNote() { return note; }
-    public void setNote(String note) { this.note = note; }
-    public OffsetDateTime getCreatedAt() { return createdAt; }
 }

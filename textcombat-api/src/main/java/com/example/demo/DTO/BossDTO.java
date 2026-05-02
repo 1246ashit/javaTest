@@ -1,16 +1,27 @@
 package com.example.demo.DTO;
 
 import com.example.demo.Entities.Boss;
+import lombok.Getter;
 
+@Getter
 public class BossDTO {
+
     private Long id;
+
     private String code;
+
     private String name;
+
     private String description;
+
     private String icon;
+
     private Integer hp;
+
     private Integer attack;
+
     private Integer defense;
+
     private Long rewardGold;
 
     public static BossDTO of(Boss b) {
@@ -26,14 +37,4 @@ public class BossDTO {
         d.rewardGold = b.getRewardGold();
         return d;
     }
-
-    public Long getId() { return id; }
-    public String getCode() { return code; }
-    public String getName() { return name; }
-    public String getDescription() { return description; }
-    public String getIcon() { return icon; }
-    public Integer getHp() { return hp; }
-    public Integer getAttack() { return attack; }
-    public Integer getDefense() { return defense; }
-    public Long getRewardGold() { return rewardGold; }
 }

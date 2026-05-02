@@ -2,8 +2,15 @@ package com.example.demo.Entities;
 
 import jakarta.persistence.*;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 @Entity
 @Table(name = "items")
+@Getter
+@Setter
+@NoArgsConstructor
 public class Item {
 
     @Id
@@ -40,44 +47,8 @@ public class Item {
     private String iconUrl;
 
     @Column(name = "heal_amount")
-    private Integer healAmount;   // null/0 = 不回血；CONSUMABLE 用
+    private Integer healAmount; // null/0 = 不回血；CONSUMABLE 用
 
     @Column
-    private Long price;   // null = 不在商店販售
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public String getCode() { return code; }
-    public void setCode(String code) { this.code = code; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-
-    public ItemType getType() { return type; }
-    public void setType(ItemType type) { this.type = type; }
-
-    public EquipmentSlot getEquipmentSlot() { return equipmentSlot; }
-    public void setEquipmentSlot(EquipmentSlot equipmentSlot) { this.equipmentSlot = equipmentSlot; }
-
-    public Integer getMaxStack() { return maxStack; }
-    public void setMaxStack(Integer maxStack) { this.maxStack = maxStack; }
-
-    public Integer getBaseAttack() { return baseAttack; }
-    public void setBaseAttack(Integer baseAttack) { this.baseAttack = baseAttack; }
-
-    public Integer getBaseDefense() { return baseDefense; }
-    public void setBaseDefense(Integer baseDefense) { this.baseDefense = baseDefense; }
-
-    public String getIconUrl() { return iconUrl; }
-    public void setIconUrl(String iconUrl) { this.iconUrl = iconUrl; }
-
-    public Integer getHealAmount() { return healAmount; }
-    public void setHealAmount(Integer healAmount) { this.healAmount = healAmount; }
-
-    public Long getPrice() { return price; }
-    public void setPrice(Long price) { this.price = price; }
+    private Long price; // null = 不在商店販售
 }

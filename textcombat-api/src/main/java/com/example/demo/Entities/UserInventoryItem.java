@@ -3,8 +3,15 @@ package com.example.demo.Entities;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+
 @Entity
 @Table(name = "user_inventory_items")
+@Getter
+@Setter
+@NoArgsConstructor
 public class UserInventoryItem {
 
     @Id
@@ -25,21 +32,4 @@ public class UserInventoryItem {
 
     @Column(name = "acquired_at", insertable = false, updatable = false)
     private LocalDateTime acquiredAt;
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
-
-    public Long getItemId() { return itemId; }
-    public void setItemId(Long itemId) { this.itemId = itemId; }
-
-    public Integer getQuantity() { return quantity; }
-    public void setQuantity(Integer quantity) { this.quantity = quantity; }
-
-    public Integer getEnhancementLevel() { return enhancementLevel; }
-    public void setEnhancementLevel(Integer enhancementLevel) { this.enhancementLevel = enhancementLevel; }
-
-    public LocalDateTime getAcquiredAt() { return acquiredAt; }
 }

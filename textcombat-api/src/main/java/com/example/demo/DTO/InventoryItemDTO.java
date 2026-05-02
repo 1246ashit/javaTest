@@ -5,6 +5,11 @@ import com.example.demo.Entities.Item;
 import com.example.demo.Entities.ItemType;
 import com.example.demo.Entities.UserInventoryItem;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
 public class InventoryItemDTO {
 
     private Long inventoryItemId;
@@ -38,18 +43,4 @@ public class InventoryItemDTO {
         dto.equippedSlotIndex = equippedSlotIndex;
         return dto;
     }
-
-    public Long getInventoryItemId() { return inventoryItemId; }
-    public String getItemCode() { return itemCode; }
-    public String getItemName() { return itemName; }
-    public String getDescription() { return description; }
-    public ItemType getType() { return type; }
-    public EquipmentSlot getEquipmentSlot() { return equipmentSlot; }
-    public Integer getQuantity() { return quantity; }
-    public Integer getEnhancementLevel() { return enhancementLevel; }
-    public Integer getBaseAttack() { return baseAttack; }
-    public Integer getBaseDefense() { return baseDefense; }
-    public String getIconUrl() { return iconUrl; }
-    public boolean isEquipped() { return equipped; }
-    public Integer getEquippedSlotIndex() { return equippedSlotIndex; }
 }

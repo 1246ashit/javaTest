@@ -2,8 +2,15 @@ package com.example.demo.Entities;
 
 import jakarta.persistence.*;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 @Entity
 @Table(name = "permissions")
+@Getter
+@Setter
+@NoArgsConstructor
 public class Permission {
 
     @Id
@@ -18,9 +25,4 @@ public class Permission {
 
     @Column(columnDefinition = "TEXT")
     private String description;
-
-    public Long getId() { return id; }
-    public String getCode() { return code; }
-    public String getName() { return name; }
-    public String getDescription() { return description; }
 }

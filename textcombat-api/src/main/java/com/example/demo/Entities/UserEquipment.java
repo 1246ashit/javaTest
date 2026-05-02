@@ -1,6 +1,9 @@
 package com.example.demo.Entities;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(
@@ -10,6 +13,9 @@ import jakarta.persistence.*;
         @UniqueConstraint(name = "uq_user_equipment_invitem", columnNames = {"user_id", "inventory_item_id"})
     }
 )
+@Getter
+@Setter
+@NoArgsConstructor
 public class UserEquipment {
 
     @Id
@@ -25,16 +31,4 @@ public class UserEquipment {
 
     @Column(name = "inventory_item_id")
     private Long inventoryItemId;
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
-
-    public Integer getSlotIndex() { return slotIndex; }
-    public void setSlotIndex(Integer slotIndex) { this.slotIndex = slotIndex; }
-
-    public Long getInventoryItemId() { return inventoryItemId; }
-    public void setInventoryItemId(Long inventoryItemId) { this.inventoryItemId = inventoryItemId; }
 }
