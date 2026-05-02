@@ -10,7 +10,8 @@ import java.util.List;
 public interface GoldTransactionRepository extends JpaRepository<GoldTransaction, Long> {
     Page<GoldTransaction> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
-    List<GoldTransaction> findTop100ByOrderByCreatedAtDesc();
+    Page<GoldTransaction> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
-    List<GoldTransaction> findTop100ByUserIdOrderByCreatedAtDesc(Long userId);
+    Page<GoldTransaction> findAllByUserIdOrderByCreatedAtDesc(Long userId , Pageable pageable);
+
 }

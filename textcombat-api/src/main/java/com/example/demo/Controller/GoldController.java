@@ -10,8 +10,11 @@ import com.example.demo.Repository.UserRepository;
 import com.example.demo.Security.CurrentUserHolder;
 import com.example.demo.Security.RequirePermission;
 import com.example.demo.Services.GoldService;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Map;
@@ -26,8 +29,8 @@ public class GoldController {
     private final UserRepository userRepository;
 
     public GoldController(GoldService goldService,
-                          GoldTransactionRepository txRepository,
-                          UserRepository userRepository) {
+            GoldTransactionRepository txRepository,
+            UserRepository userRepository) {
         this.goldService = goldService;
         this.txRepository = txRepository;
         this.userRepository = userRepository;
@@ -52,8 +55,7 @@ public class GoldController {
             return ResponseEntity.ok(Map.of(
                     "userId", req.getUserId(),
                     "amount", req.getAmount(),
-                    "balance", balance
-            ));
+                    "balance", balance));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (IllegalStateException e) {
@@ -64,19 +66,20 @@ public class GoldController {
     // 管理員看全站交易紀錄；傳 userId 可過濾；最多 100 筆
     @GetMapping("/transactions")
     @RequirePermission("USER_READ_ALL")
-    public ResponseEntity<?> transactions(@RequestParam(required = false) Long userId) {
-        List<GoldTransaction> list = (userId == null)
-                ? txRepository.findTop100ByOrderByCreatedAtDesc()
-                : txRepository.findTop100ByUserIdOrderByCreatedAtDesc(userId);
+    public ResponseEntity<Page<GoldTransactionDTO>> transactions(@RequestParam(required = false) Long userId,
+            Pageable pageable) {
+
+        Page<GoldTransaction> page = (userId == null)
+                ? txRepository.findAllByOrderByCreatedAtDesc(pageable)
+                : txRepository.findAllByUserIdOrderByCreatedAtDesc(userId, pageable);
 
         // 一次撈相關的 username（避免 N+1）
         Map<Long, String> userIdToName = userRepository.findAllById(
-                list.stream().map(GoldTransaction::getUserId).distinct().toList()
-        ).stream().collect(Collectors.toMap(UsersEntity::getId, UsersEntity::getUsername));
+                page.stream().map(GoldTransaction::getUserId).distinct().toList()).stream()
+                .collect(Collectors.toMap(UsersEntity::getId, UsersEntity::getUsername));
 
-        List<GoldTransactionDTO> dtos = list.stream()
-                .map(tx -> GoldTransactionDTO.of(tx, userIdToName.get(tx.getUserId())))
-                .toList();
+        Page<GoldTransactionDTO> dtos = page.map(tx -> GoldTransactionDTO.of(tx, userIdToName.get(tx.getUserId())));
+
         return ResponseEntity.ok(dtos);
     }
 }
