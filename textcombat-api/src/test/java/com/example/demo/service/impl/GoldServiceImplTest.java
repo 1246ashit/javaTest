@@ -4,7 +4,7 @@ import com.example.demo.entity.UsersEntity;
 import com.example.demo.entity.GoldTransaction;
 import com.example.demo.repository.GoldTransactionRepository;
 import com.example.demo.repository.UserRepository;
-import com.example.demo.service.Impl.GoldServiceImpl;
+import com.example.demo.service.impl.GoldServiceImpl;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
