@@ -461,7 +461,7 @@ class RoomServiceImplTest {
         RoomMemberDTO other = member(2L, "bob", 100, 30, 5, true, false, false); // 防止 round 推進
         RoomDTO r = ongoingRoom("abc", me, other);
         // boss: hp=100, def=2 → 我攻擊 30 - 2 = 28 傷害
-        stubRedisOps();
+        when(redis.opsForValue()).thenReturn(valueOps);
         when(valueOps.get("room:abc")).thenReturn(r);
 
         roomService.act(1L, "abc", RoomAction.ATTACK, null);
@@ -500,7 +500,7 @@ class RoomServiceImplTest {
         RoomMemberDTO me = member(1L, "alice", 100, 30, 5, true, false, false);
         RoomMemberDTO other = member(2L, "bob", 100, 30, 5, true, false, false);
         RoomDTO r = ongoingRoom("abc", me, other);
-        stubRedisOps();
+        when(redis.opsForValue()).thenReturn(valueOps);
         when(valueOps.get("room:abc")).thenReturn(r);
 
         int bossHpBefore = r.getBossHp();
@@ -574,7 +574,7 @@ class RoomServiceImplTest {
         RoomMemberDTO me = member(1L, "alice", 40, 30, 5, true, false, false);
         RoomMemberDTO other = member(2L, "bob", 100, 30, 5, true, false, false); // 防進 BOSS phase
         RoomDTO r = ongoingRoom("abc", me, other);
-        stubRedisOps();
+        when(redis.opsForValue()).thenReturn(valueOps);
         when(valueOps.get("room:abc")).thenReturn(r);
 
         UserInventoryItem inv = new UserInventoryItem();
