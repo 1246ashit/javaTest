@@ -5,11 +5,9 @@ import com.example.demo.dto.ShopItemDTO;
 import com.example.demo.entity.Item;
 import com.example.demo.entity.ItemType;
 import com.example.demo.entity.UserInventoryItem;
-import com.example.demo.entity.UsersEntity;
 import com.example.demo.repository.ItemRepository;
 import com.example.demo.repository.UserInventoryItemRepository;
 import com.example.demo.service.GoldService;
-import com.example.demo.service.impl.ShopServiceImpl;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,7 +18,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,7 +30,6 @@ import java.util.Collections;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 class ShopServiceImplTest {
