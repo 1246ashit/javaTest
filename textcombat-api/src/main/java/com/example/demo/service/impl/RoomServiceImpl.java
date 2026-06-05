@@ -2,11 +2,14 @@ package com.example.demo.service.impl;
 
 import com.example.demo.dto.*;
 import com.example.demo.entity.*;
+import com.example.demo.messaging.LobbyEventPublisher;
 import com.example.demo.repository.*;
 import com.example.demo.service.GoldService;
 import com.example.demo.service.InventoryService;
 import com.example.demo.service.RoomService;
 
+import org.redisson.api.RedissonClient;
+import org.redisson.api.RLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -41,6 +44,10 @@ public class RoomServiceImpl implements RoomService {
     private final GoldService goldService;
     private final SimpMessagingTemplate messaging;
 
+    private final RedissonClient redisson;
+
+    private final LobbyEventPublisher lobbyEventPublisher;
+
     public RoomServiceImpl(RedisTemplate<String, RoomDTO> redis,
             RedisTemplate<String, String> stringRedis,
             BossRepository bossRepo,
@@ -50,7 +57,10 @@ public class RoomServiceImpl implements RoomService {
             UserEquipmentRepository equipmentRepo,
             ItemRepository itemRepo,
             GoldService goldService,
-            SimpMessagingTemplate messaging) {
+            SimpMessagingTemplate messaging,
+            RedissonClient redisson,
+            LobbyEventPublisher lobbyEventPublisher
+        ) {
         this.redis = redis;
         this.stringRedis = stringRedis;
         this.bossRepo = bossRepo;
@@ -61,6 +71,8 @@ public class RoomServiceImpl implements RoomService {
         this.itemRepo = itemRepo;
         this.goldService = goldService;
         this.messaging = messaging;
+        this.redisson = redisson;
+        this.lobbyEventPublisher = lobbyEventPublisher;
     }
 
     private String roomKey(String roomId) {
@@ -84,17 +96,17 @@ public class RoomServiceImpl implements RoomService {
         stringRedis.opsForSet().remove(LOBBY_KEY, roomId);
     }
 
-    /** 同 roomId 的字串拿來當鎖；單 server 並發安全。 */
-    private Object lockFor(String roomId) {
-        return ("__room_lock__:" + roomId).intern();
-    }
-
     private void broadcastRoom(RoomDTO r) {
         messaging.convertAndSend("/topic/room/" + r.getRoomId(), r);
     }
 
-    private void broadcastLobby() {
-        messaging.convertAndSend("/topic/lobby", listOpen());
+    /** 視房間結局決定發 UPDATED 還是 CLOSED 事件給 lobby。 */
+    private void broadcastLobbyChange(RoomDTO r) {
+        if (r.getOutcome() == RoomOutcome.ONGOING) {
+            lobbyEventPublisher.publishUpdated(RoomSummaryDTO.of(r));
+        } else {
+            lobbyEventPublisher.publishClosed(r.getRoomId());
+        }
     }
 
     // ====================================================
@@ -143,15 +155,18 @@ public class RoomServiceImpl implements RoomService {
 
         log.info("開房: roomId={}, userId={}, bossId={}", roomId, userId, bossId);
         broadcastRoom(r);
-        broadcastLobby();
+        lobbyEventPublisher.publishCreated(RoomSummaryDTO.of(r));
         return r;
     }
 
     @Override
     @Transactional
     public RoomDTO joinRoom(Long userId, String roomId) {
-        synchronized (lockFor(roomId)) {
-            RoomDTO r = load(roomId);
+        RoomDTO r = null;
+        RLock lock = redisson.getLock("room_lock:" + roomId);
+        lock.lock();
+        try {
+            r = load(roomId);
             if (r.getOutcome() != RoomOutcome.ONGOING) {
                 throw new IllegalStateException("房間已結束");
             }
@@ -177,17 +192,22 @@ public class RoomServiceImpl implements RoomService {
 
             save(r);
             log.info("加入房間: roomId={}, userId={}", roomId, userId);
-            broadcastRoom(r);
-            broadcastLobby();
-            return r;
+        } finally {
+            lock.unlock();
         }
+        broadcastRoom(r);
+        lobbyEventPublisher.publishUpdated(RoomSummaryDTO.of(r));
+        return r;
     }
 
     @Override
     @Transactional
     public RoomDTO leaveRoom(Long userId, String roomId) {
-        synchronized (lockFor(roomId)) {
-            RoomDTO r = load(roomId);
+        RoomDTO r = null;
+        RLock lock = redisson.getLock("room_lock:" + roomId);
+        lock.lock();
+        try {
+            r = load(roomId);
             RoomMemberDTO me = findMember(r, userId);
             if (me == null)
                 throw new IllegalStateException("你不在這間房");
@@ -204,21 +224,18 @@ public class RoomServiceImpl implements RoomService {
                 r.setOutcome(RoomOutcome.ABANDONED);
                 r.setEndedAt(Instant.now().toEpochMilli());
                 r.getLog().add("沒有玩家在房間裡，戰鬥中止");
-                save(r);
                 stringRedis.opsForSet().remove(LOBBY_KEY, r.getRoomId());
-                broadcastRoom(r);
-                broadcastLobby();
-                return r;
-            }
-
-            if (r.getOutcome() == RoomOutcome.ONGOING) {
+            } else if (r.getOutcome() == RoomOutcome.ONGOING) {
                 advanceIfRoundDone(r);
             }
+
             save(r);
-            broadcastRoom(r);
-            broadcastLobby();
-            return r;
+        } finally {
+            lock.unlock();
         }
+        broadcastRoom(r);
+        broadcastLobbyChange(r);
+        return r;
     }
 
     @Override
@@ -226,8 +243,11 @@ public class RoomServiceImpl implements RoomService {
     public RoomDTO act(Long userId, String roomId, RoomAction action, Long inventoryItemId) {
         if (action == null)
             throw new IllegalArgumentException("action 為必填");
-        synchronized (lockFor(roomId)) {
-            RoomDTO r = load(roomId);
+        RoomDTO r = null;
+        RLock lock = redisson.getLock("room_lock:" + roomId);
+        lock.lock();
+        try {
+            r = load(roomId);
             if (r.getOutcome() != RoomOutcome.ONGOING) {
                 throw new IllegalStateException("戰鬥已結束");
             }
@@ -256,11 +276,16 @@ public class RoomServiceImpl implements RoomService {
                 advanceIfRoundDone(r);
             }
             save(r);
-            broadcastRoom(r);
-            if (r.getOutcome() != RoomOutcome.ONGOING)
-                broadcastLobby();
-            return r;
+        } finally {
+            lock.unlock();
         }
+        broadcastRoom(r);
+        // 戰鬥還在進行就不發 lobby 事件（act 期間 lobby 不需要刷，省訊息量）；
+        // 結束才發 ROOM_CLOSED 讓大廳把房間移除
+        if (r.getOutcome() != RoomOutcome.ONGOING) {
+            lobbyEventPublisher.publishClosed(r.getRoomId());
+        }
+        return r;
     }
 
     @Override

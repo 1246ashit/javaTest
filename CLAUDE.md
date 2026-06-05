@@ -15,7 +15,7 @@
 
 ### 後端（`textcombat-api/`）
 
-需要在 `textcombat-api/.env` 中放 `POSTGRES_PASSWORD` 與 `JWT_SECRET`（透過 `spring.config.import=optional:file:.env[.properties]` 載入）。資料庫是 PostgreSQL，房間狀態需要 Redis。
+需要在 `textcombat-api/.env` 中放 `POSTGRES_PASSWORD` 與 `JWT_SECRET`（透過 `spring.config.import=optional:file:.env[.properties]` 載入）。執行需要三個外部服務：**PostgreSQL**（真相來源）、**Redis**（房間狀態 + Redisson 分散式鎖）、**Kafka**（lobby 事件廣播）。連線設定在 `application.properties`（Redis host/password、`spring.kafka.bootstrap-servers`、consumer group `textcombat-lobby`）。Kafka 或 Redis 起不來，啟動會失敗。
 
 ```powershell
 # 啟動 dev server（HTTPS 8443，self-signed 憑證在 keystore.p12）
@@ -66,13 +66,17 @@ Controller 透過 `CurrentUserHolder.get()` 拿當前使用者，不要從 clien
 - **PostgreSQL** 是真相來源：使用者、物品、背包、裝備、金幣餘額、金幣交易、Boss、role、permission。
 - **Redis** 放*短暫戰鬥狀態*：每間房序列化成 `RoomDTO`，key 為 `room:<roomId>`；另有 `lobby:rooms` Set 記錄開放中的房 id。進行中的房 TTL 30 分鐘、已結束的房 TTL 3 分鐘。**房間沒有 DB table** —— Redis key 一掉，房間就沒了。
 
-`RoomServiceImpl` 用 `synchronized(("__room_lock__:" + roomId).intern())` 做每房層級的並發控制。**這只在單一後端 instance 有效** —— 一旦水平擴展，必須換成分散式鎖。
+每房層級的並發控制用 **Redisson 分散式鎖**：`redisson.getLock("room_lock:" + roomId)` → `lock.lock()` / `finally { lock.unlock() }`（見 `joinRoom`、`leaveRoom`、`act`）。`RedissonConfig` 用 single-server 模式指到同一台 Redis。這跨 instance 生效，所以水平擴展安全。改 room 並發相關邏輯時一律用 Redisson `RLock`。
 
 ### 即時更新（WebSocket / STOMP）
 
 `WebSocketConfig` 開放 `/ws` 端點，使用 in-memory simple broker 配 `/topic`。JWT 在 handshake 階段透過 query string `?token=...` 驗（**不是** 透過 header）。`StompPrincipal(userId, username)` 會綁到 session，讓 `convertAndSendToUser` 能用。
 
-`RoomServiceImpl` 每次改 state 後會把房間狀態 broadcast 到 `/topic/room/<roomId>`；outcome 變動時還會 broadcast lobby 到 `/topic/lobby`。前端用 `@stomp/stompjs` 訂閱（見 `textcombat-web/src/api/ws.ts`）。
+`RoomServiceImpl` 每次改 state 後會把房間狀態**直接** broadcast 到 `/topic/room/<roomId>`（單房訂閱者就在同一台 instance，不需跨 instance）。
+
+**Lobby 廣播走 Kafka，不是直接 broadcast**（為了多 instance 一致性）：房間開/關/更新時，`broadcastLobbyChange` 透過 `LobbyEventPublisher` 發 `LobbyEvent` 到 Kafka topic（用 `roomId` 當 partition key 保證同房事件順序）。每個 instance 的 `LobbyEventConsumer`（`@KafkaListener`）收到事件後，各自 `convertAndSend("/topic/lobby", roomService.listOpen())` 推給自己連著的前端。所以改 lobby 推送邏輯要動 `messaging/` 目錄，不是在 service 裡直接呼叫 `messaging.convertAndSend`。`KafkaConfig` 設了 `TRUSTED_PACKAGES`（`com.example.demo.messaging,com.example.demo.dto`）做 JSON 反序列化白名單。
+
+前端用 `@stomp/stompjs` 訂閱 `/topic/room/<roomId>` 與 `/topic/lobby`（見 `textcombat-web/src/api/ws.ts`）。
 
 ### Service 層
 

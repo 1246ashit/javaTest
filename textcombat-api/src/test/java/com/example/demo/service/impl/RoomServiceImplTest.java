@@ -11,6 +11,7 @@ import com.example.demo.entity.Item;
 import com.example.demo.entity.ItemType;
 import com.example.demo.entity.UserInventoryItem;
 import com.example.demo.entity.UsersEntity;
+import com.example.demo.messaging.LobbyEventPublisher;
 import com.example.demo.repository.BossRepository;
 import com.example.demo.repository.ItemRepository;
 import com.example.demo.repository.UserEquipmentRepository;
@@ -25,6 +26,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.SetOperations;
 import org.springframework.data.redis.core.ValueOperations;
@@ -40,6 +43,7 @@ import java.util.Set;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -76,16 +80,25 @@ class RoomServiceImplTest {
     private GoldService goldService;
     @Mock
     private SimpMessagingTemplate messaging;
+    @Mock
+    private RedissonClient redisson;
+    @Mock
+    private RLock rLock;
+
+    @Mock
+    private LobbyEventPublisher lobbyEventPublisher;
 
     private RoomServiceImpl roomService;
 
     @BeforeEach
     void setUp() {
+        lenient().when(redisson.getLock(anyString())).thenReturn(rLock);
         roomService = new RoomServiceImpl(
                 redis, stringRedis,
                 bossRepo, userRepo,
                 inventoryService, inventoryRepo, equipmentRepo, itemRepo,
-                goldService, messaging);
+                goldService, messaging,
+                redisson,lobbyEventPublisher);
     }
 
     // ============================================================
@@ -301,8 +314,6 @@ class RoomServiceImplTest {
         r.setPhase(RoomPhase.PLAYER);
         when(redis.opsForValue()).thenReturn(valueOps);
         when(valueOps.get("room:abc")).thenReturn(r);
-        when(stringRedis.opsForSet()).thenReturn(setOps);
-        when(setOps.members("lobby:rooms")).thenReturn(Set.of());
         when(userRepo.findById(1L)).thenReturn(Optional.of(user(1L, "alice")));
         when(inventoryService.listInventory(1L))
                 .thenReturn(new InventoryResponse(new HashMap<>(), List.of(), 30, 5));
@@ -367,9 +378,8 @@ class RoomServiceImplTest {
         RoomMemberDTO me = member(1L, "alice", 100, 10, 5, true, false, true);
         RoomMemberDTO other = member(2L, "bob", 100, 10, 5, true, false, false);
         RoomDTO r = ongoingRoom("abc", me, other);
-        stubRedisOps();
+        when(redis.opsForValue()).thenReturn(valueOps);
         when(valueOps.get("room:abc")).thenReturn(r);
-        when(setOps.members("lobby:rooms")).thenReturn(Set.of());
 
         roomService.leaveRoom(1L, "abc");
 
