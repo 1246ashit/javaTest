@@ -1,36 +1,16 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "03671c01ed67f9bc6fa55eeed6b2dfa9a22c8fb8",
-  "generatedAt": "2026-05-25T14:44:16.257Z",
+  "gitCommitHash": "9d208881b3e440798c3f55bc247567ad23e99eb3",
+  "generatedAt": "2026-06-05T04:39:47.180Z",
   "files": {
-    ".understand-anything/.understandignore": {
-      "filePath": ".understand-anything/.understandignore",
-      "contentHash": "f986fed9aa0e85ef89caa7f1afd1588b01897bb679c57902387c2cb818f3997d",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 97,
-      "hasStructuralAnalysis": false
-    },
-    ".understand-anything/config.json": {
-      "filePath": ".understand-anything/config.json",
-      "contentHash": "9f29643c6065184c7f97e3dd3dde15818c949892f765a823a9cf02f63d262cfd",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 4,
-      "hasStructuralAnalysis": true
-    },
     "CLAUDE.md": {
       "filePath": "CLAUDE.md",
-      "contentHash": "5b55292ac14f9aba82031b9912f772f1e2e77d91d9140974b05f0f74c8234c5c",
+      "contentHash": "83757533bc5210b07aba700b38065387784bfa4eeb8327107564a03275823be7",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 102,
+      "totalLines": 106,
       "hasStructuralAnalysis": true
     },
     "textcombat-api/.gitattributes": {
@@ -5494,7 +5474,7 @@
     },
     "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java": {
       "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "contentHash": "cd06d8a42b6f0586c9892aba0a14cf1b4b2efeaadd430b27a5f11dad16a35567",
+      "contentHash": "97c45742e19aa8434e486f02e2f53bd64d7196387b0ebe5f5b18c985b4572364",
       "functions": [
         {
           "name": "RoomServiceImpl",
@@ -5550,15 +5530,6 @@
           "returnType": "void",
           "exported": false,
           "lineCount": 4
-        },
-        {
-          "name": "lockFor",
-          "params": [
-            "roomId"
-          ],
-          "returnType": "Object",
-          "exported": false,
-          "lineCount": 3
         },
         {
           "name": "broadcastRoom",
@@ -5762,7 +5733,6 @@
             "load",
             "save",
             "remove",
-            "lockFor",
             "broadcastRoom",
             "broadcastLobbyChange",
             "createRoom",
@@ -5804,7 +5774,7 @@
             "lobbyEventPublisher"
           ],
           "exported": true,
-          "lineCount": 497
+          "lineCount": 492
         }
       ],
       "imports": [
@@ -5936,7 +5906,7 @@
         "getRoom",
         "RoomServiceImpl"
       ],
-      "totalLines": 522,
+      "totalLines": 517,
       "hasStructuralAnalysis": true
     },
     "textcombat-api/src/main/java/com/example/demo/service/impl/ShopServiceImpl.java": {
@@ -7482,7 +7452,7 @@
     },
     "textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java": {
       "filePath": "textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
-      "contentHash": "1748a4fcf82c6ec3c8d50bfc8b9047fe3887ba854aaa361e484906546cfb31cf",
+      "contentHash": "2369e71ea3303d88f1f2a4f76ca6aeca7c113ecc38b34bfbe4cf7c607d5c91a3",
       "functions": [
         {
           "name": "setUp",
@@ -7490,13 +7460,6 @@
           "returnType": "void",
           "exported": false,
           "lineCount": 17
-        },
-        {
-          "name": "lockFor_case1",
-          "params": [],
-          "returnType": "void",
-          "exported": false,
-          "lineCount": 7
         },
         {
           "name": "joinRoom_case1",
@@ -7553,7 +7516,6 @@
           "name": "RoomServiceImplBroadcastTest",
           "methods": [
             "setUp",
-            "lockFor_case1",
             "joinRoom_case1",
             "act_case1",
             "act_case2",
@@ -7581,7 +7543,7 @@
             "lobbyEventPublisher"
           ],
           "exported": false,
-          "lineCount": 326
+          "lineCount": 317
         }
       ],
       "imports": [
@@ -7821,7 +7783,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 371,
+      "totalLines": 362,
       "hasStructuralAnalysis": true
     },
     "textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java": {

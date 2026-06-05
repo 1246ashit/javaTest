@@ -16,29 +16,902 @@
     "frameworks": [
       "Spring Boot",
       "Spring Data JPA",
-      "Spring Data Redis",
-      "Spring WebSocket",
-      "JWT (jjwt)",
+      "Spring Kafka",
       "Redisson",
-      "Kafka",
-      "PostgreSQL",
       "React",
       "React Router",
       "Vite",
-      "TypeScript",
-      "antd",
-      "zustand",
-      "axios",
-      "@stomp/stompjs",
-      "ESLint",
-      "JUnit 5",
-      "Mockito"
+      "Ant Design",
+      "Zustand",
+      "Axios"
     ],
-    "description": "一個多人線上文字戰鬥遊戲 monorepo，後端採用 Spring Boot 4 + Java 21（PostgreSQL 為真相來源、Redis 存放短暫房間狀態、透過 STOMP/WebSocket 推播即時戰鬥更新），前端採用 Vite + React 19 + TypeScript（antd、zustand、react-router v7），並以 JWT 進行認證授權。",
-    "analyzedAt": "2026-05-25T14:43:13.465Z",
-    "gitCommitHash": "03671c01ed67f9bc6fa55eeed6b2dfa9a22c8fb8"
+    "description": "TextCombat 文字戰鬥遊戲 monorepo：Spring Boot 4.0.5 後端（JPA、JWT、WebSocket/STOMP、Redis 房間狀態、Redisson 分散式鎖、Kafka 大廳事件廣播）＋ Vite/React 19 前端。",
+    "analyzedAt": "2026-06-05T00:00:00.000Z",
+    "gitCommitHash": "9d208881b3e440798c3f55bc247567ad23e99eb3"
   },
   "nodes": [
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java",
+      "type": "file",
+      "name": "KafkaConfig.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java",
+      "summary": "Kafka 的 producer/consumer 設定類別，建立 KafkaTemplate 與 listener container factory，並透過 TRUSTED_PACKAGES 設定 JSON 反序列化白名單以接收 LobbyEvent。",
+      "tags": [
+        "configuration",
+        "messaging",
+        "kafka",
+        "serialization"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "用 JsonDeserializer 的 TRUSTED_PACKAGES 限制可反序列化的 package，避免任意類別反序列化風險。"
+    },
+    {
+      "id": "function:textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java:consumerFactory",
+      "type": "function",
+      "name": "consumerFactory",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java",
+      "lineRange": [
+        51,
+        65
+      ],
+      "summary": "建立 Kafka ConsumerFactory，設定 group id、JSON 反序列化器與 TRUSTED_PACKAGES，預設目標型別為 LobbyEvent。",
+      "tags": [
+        "factory",
+        "kafka",
+        "deserialization"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/config/RedisConfig.java",
+      "type": "file",
+      "name": "RedisConfig.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/config/RedisConfig.java",
+      "summary": "Redis 設定類別，提供存放 RoomDTO 的 roomRedisTemplate（String key + Jackson JSON value）與一般用途的 stringRedisTemplate。",
+      "tags": [
+        "configuration",
+        "redis",
+        "serialization"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/controller/BossController.java",
+      "type": "file",
+      "name": "BossController.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/controller/BossController.java",
+      "summary": "提供 Boss 清單查詢的 REST controller，依排序回傳轉成 BossDTO 的所有 Boss。",
+      "tags": [
+        "api-handler",
+        "controller",
+        "boss"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java",
+      "type": "file",
+      "name": "BossDTO.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java",
+      "summary": "Boss 的對外傳輸物件，含靜態工廠 of(Boss) 從 Boss entity 轉換而來。",
+      "tags": [
+        "data-model",
+        "dto",
+        "factory"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
+      "type": "file",
+      "name": "InventoryResponse.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
+      "summary": "背包查詢回應 DTO，封裝格位（slots）、物品清單與裝備後的總攻擊／總防禦。",
+      "tags": [
+        "data-model",
+        "dto",
+        "inventory"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomAction.java",
+      "type": "file",
+      "name": "RoomAction.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/RoomAction.java",
+      "summary": "玩家戰鬥行動的 enum（攻擊／喝藥／跳過等），作為 RoomService.act 的行動參數。",
+      "tags": [
+        "data-model",
+        "enum",
+        "combat"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomDTO.java",
+      "type": "file",
+      "name": "RoomDTO.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/RoomDTO.java",
+      "summary": "序列化存入 Redis 的房間完整狀態物件，含 Boss 數值、成員清單、回合、階段、結果與戰鬥 log；MAX_MEMBERS 限制人數。",
+      "tags": [
+        "data-model",
+        "dto",
+        "room",
+        "redis"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomMemberDTO.java",
+      "type": "file",
+      "name": "RoomMemberDTO.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/RoomMemberDTO.java",
+      "summary": "房間成員狀態物件，記錄玩家 HP／攻防、是否存活、是否離開、本回合是否已行動等戰鬥狀態。",
+      "tags": [
+        "data-model",
+        "dto",
+        "room"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomOutcome.java",
+      "type": "file",
+      "name": "RoomOutcome.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/RoomOutcome.java",
+      "summary": "房間戰鬥結果的 enum（進行中／勝利／失敗），用於判斷房間是否結束。",
+      "tags": [
+        "data-model",
+        "enum",
+        "room"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomPhase.java",
+      "type": "file",
+      "name": "RoomPhase.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/RoomPhase.java",
+      "summary": "房間回合階段的 enum（玩家階段／BOSS 階段），驅動回合推進邏輯。",
+      "tags": [
+        "data-model",
+        "enum",
+        "room"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
+      "type": "file",
+      "name": "RoomSummaryDTO.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
+      "summary": "lobby 大廳用的房間摘要 DTO，含靜態工廠 of(RoomDTO) 萃取房名、Boss 概況與目前人數；作為 LobbyEvent 的 payload。",
+      "tags": [
+        "data-model",
+        "dto",
+        "lobby",
+        "factory"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/entity/Boss.java",
+      "type": "file",
+      "name": "Boss.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/entity/Boss.java",
+      "summary": "Boss 的 JPA entity，存放 code、數值（HP／攻擊／防禦）、獎勵金幣與排序欄位。",
+      "tags": [
+        "data-model",
+        "entity",
+        "jpa",
+        "boss"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEvent.java",
+      "type": "file",
+      "name": "LobbyEvent.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/messaging/LobbyEvent.java",
+      "summary": "lobby 廣播事件的 record，提供 created/updated/closed 三個靜態工廠，攜帶 roomId 與 RoomSummaryDTO，作為 Kafka 訊息酬載。",
+      "tags": [
+        "messaging",
+        "data-model",
+        "record",
+        "lobby"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Java record 配靜態工廠方法，作為 Kafka topic 的不可變事件型別。"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java",
+      "type": "file",
+      "name": "LobbyEventConsumer.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java",
+      "summary": "Kafka @KafkaListener，收到 LobbyEvent 後在本 instance 透過 SimpMessagingTemplate 把最新的 listOpen() 推送到 /topic/lobby，達成多 instance 一致的大廳更新。",
+      "tags": [
+        "messaging",
+        "kafka",
+        "event-handler",
+        "websocket"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java:onLobbyEvent",
+      "type": "function",
+      "name": "onLobbyEvent",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java",
+      "lineRange": [
+        27,
+        32
+      ],
+      "summary": "@KafkaListener 回呼，收到任一 LobbyEvent 即呼叫 roomService.listOpen() 並 convertAndSend 到 /topic/lobby。",
+      "tags": [
+        "event-handler",
+        "kafka",
+        "websocket"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
+      "type": "file",
+      "name": "LobbyEventPublisher.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
+      "summary": "lobby 事件發布者，提供 publishCreated/Updated/Closed，將 LobbyEvent 以 roomId 當 partition key 送到 Kafka topic，確保同房事件順序。",
+      "tags": [
+        "messaging",
+        "kafka",
+        "publisher",
+        "lobby"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java:send",
+      "type": "function",
+      "name": "send",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
+      "lineRange": [
+        43,
+        46
+      ],
+      "summary": "私有送出方法，用 event.roomId() 當 Kafka partition key 呼叫 kafkaTemplate.send，被三個 publishXxx 共用。",
+      "tags": [
+        "kafka",
+        "publisher",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/repository/BossRepository.java",
+      "type": "file",
+      "name": "BossRepository.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/repository/BossRepository.java",
+      "summary": "Boss 的 Spring Data JPA repository，提供依排序查全部與依 code 查詢。",
+      "tags": [
+        "repository",
+        "jpa",
+        "data-access",
+        "boss"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
+      "type": "file",
+      "name": "GoldService.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
+      "summary": "金幣服務介面，定義 changeGold（唯一合法改餘額入口）與 getGold。",
+      "tags": [
+        "service",
+        "type-definition",
+        "gold",
+        "interface"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
+      "type": "file",
+      "name": "InventoryService.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
+      "summary": "背包服務介面，定義列出背包、裝備／卸下、使用格位與丟棄等操作。",
+      "tags": [
+        "service",
+        "type-definition",
+        "inventory",
+        "interface"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
+      "type": "file",
+      "name": "RoomService.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
+      "summary": "房間／戰鬥服務介面，定義建房、加入、離開、行動、列出開放房與查房等核心操作。",
+      "tags": [
+        "service",
+        "type-definition",
+        "room",
+        "interface"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "type": "file",
+      "name": "RoomServiceImpl.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "summary": "房間／戰鬥核心實作：以 Redis 存 RoomDTO（含 TTL），用 Redisson RLock 對每房做分散式鎖，戰鬥狀態直接 broadcast 到 /topic/room/<id>，大廳變更則委派 LobbyEventPublisher 走 Kafka。",
+      "tags": [
+        "service",
+        "room",
+        "combat",
+        "distributed-lock",
+        "redis",
+        "tested"
+      ],
+      "complexity": "complex",
+      "languageNotes": "join/leave/act 用 redisson.getLock(\"room_lock:\"+roomId) 配 try/finally unlock 做跨 instance 並發控制；回合推進集中在 advanceIfRoundDone。"
+    },
+    {
+      "id": "class:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:RoomServiceImpl",
+      "type": "class",
+      "name": "RoomServiceImpl",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "lineRange": [
+        25,
+        516
+      ],
+      "summary": "RoomService 的實作類別，整合 Redis、Redisson、GoldService、InventoryService、repositories 與 LobbyEventPublisher，承載完整房間生命週期與戰鬥邏輯。",
+      "tags": [
+        "service",
+        "room",
+        "combat",
+        "distributed-lock"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:createRoom",
+      "type": "function",
+      "name": "createRoom",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "lineRange": [
+        116,
+        160
+      ],
+      "summary": "建立房間：載入 Boss 與 user，組出 RoomDTO 並存進 Redis、加入 lobby set，broadcast 房間並透過 LobbyEventPublisher.publishCreated 發 Kafka 事件。",
+      "tags": [
+        "service",
+        "room",
+        "redis"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:joinRoom",
+      "type": "function",
+      "name": "joinRoom",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "lineRange": [
+        162,
+        201
+      ],
+      "summary": "玩家加入房間：取 Redisson RLock 後校驗房間未結束、未滿員、未重複加入，建立成員並存檔廣播。",
+      "tags": [
+        "service",
+        "room",
+        "distributed-lock"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:leaveRoom",
+      "type": "function",
+      "name": "leaveRoom",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "lineRange": [
+        203,
+        239
+      ],
+      "summary": "玩家離開房間：取 Redisson RLock，標記成員 fled，若全員離開則移房，否則存檔並廣播房間與大廳變更。",
+      "tags": [
+        "service",
+        "room",
+        "distributed-lock"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:act",
+      "type": "function",
+      "name": "act",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "lineRange": [
+        241,
+        289
+      ],
+      "summary": "玩家行動的唯一入口：取 Redisson RLock，依 RoomAction 分派 doAttack/doPotion/doSkip，再呼叫 advanceIfRoundDone 推進回合。",
+      "tags": [
+        "service",
+        "room",
+        "combat",
+        "distributed-lock"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:listOpen",
+      "type": "function",
+      "name": "listOpen",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "lineRange": [
+        291,
+        316
+      ],
+      "summary": "列出 lobby 中所有開放房間摘要，從 Redis lobby set 讀取各房並轉成 RoomSummaryDTO；被 LobbyEventConsumer 用來推播大廳。",
+      "tags": [
+        "service",
+        "lobby",
+        "redis"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:advanceIfRoundDone",
+      "type": "function",
+      "name": "advanceIfRoundDone",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "lineRange": [
+        380,
+        419
+      ],
+      "summary": "回合推進核心：當所有存活且未離開的成員 actedThisRound 皆為 true 時進入 BOSS 階段，處理 bossTurn 並判定 victory/defeat。",
+      "tags": [
+        "service",
+        "room",
+        "combat"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:bossTurn",
+      "type": "function",
+      "name": "bossTurn",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "lineRange": [
+        421,
+        444
+      ],
+      "summary": "BOSS 行動階段：對存活成員造成傷害並更新 HP／存活狀態，寫入戰鬥 log。",
+      "tags": [
+        "service",
+        "combat",
+        "boss"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:victory",
+      "type": "function",
+      "name": "victory",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "lineRange": [
+        446,
+        467
+      ],
+      "summary": "勝利結算：設定房間 outcome 為勝利，透過 GoldService.changeGold 發放 Boss 獎勵金幣給存活成員並寫 log。",
+      "tags": [
+        "service",
+        "combat",
+        "gold"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:doPotion",
+      "type": "function",
+      "name": "doPotion",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "lineRange": [
+        335,
+        369
+      ],
+      "summary": "喝藥行動：校驗並消耗背包中的藥水（透過 inventory repo），恢復玩家 HP 並寫入戰鬥 log。",
+      "tags": [
+        "service",
+        "combat",
+        "inventory"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:newMember",
+      "type": "function",
+      "name": "newMember",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "lineRange": [
+        480,
+        495
+      ],
+      "summary": "依使用者建立 RoomMemberDTO，計算其攻防數值（含裝備加成）並設定初始 HP 與本回合行動狀態。",
+      "tags": [
+        "service",
+        "room",
+        "factory"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
+      "type": "file",
+      "name": "RoomServiceImplBroadcastTest.java",
+      "filePath": "textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
+      "summary": "RoomServiceImpl 的 WebSocket／lobby 廣播單元測試：mock SimpMessagingTemplate 與 LobbyEventPublisher，驗證房間狀態與大廳事件的推播行為。",
+      "tags": [
+        "test",
+        "unit-test",
+        "websocket",
+        "mockito"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "type": "file",
+      "name": "RoomServiceImplTest.java",
+      "filePath": "textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "summary": "RoomServiceImpl 的核心邏輯單元測試（Mockito）：涵蓋建房、加入、離開、行動、回合推進與勝負結算等情境，純 mock 不載 Spring context。",
+      "tags": [
+        "test",
+        "unit-test",
+        "room",
+        "mockito"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:CLAUDE.md",
+      "type": "document",
+      "name": "CLAUDE.md",
+      "filePath": "CLAUDE.md",
+      "summary": "專案權威指引文件，涵蓋 monorepo 結構、後端/前端常用指令、認證流程、SQL vs Redis 狀態切分、WebSocket/Kafka 即時更新、Service 層慣例與測試規範。",
+      "tags": [
+        "documentation",
+        "entry-point",
+        "architecture",
+        "conventions"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:textcombat-api/.gitattributes",
+      "type": "file",
+      "name": ".gitattributes",
+      "filePath": "textcombat-api/.gitattributes",
+      "summary": "Git 屬性設定檔，控制後端子專案的換行符與檔案處理行為。",
+      "tags": [
+        "configuration",
+        "git",
+        "build-system"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:textcombat-api/pom.xml",
+      "type": "config",
+      "name": "pom.xml",
+      "filePath": "textcombat-api/pom.xml",
+      "summary": "後端 Maven 建置設定檔（Spring Boot 4.0.x、Java 21），管理 JPA、JWT、WebSocket 與新加入的 Redisson（分散式鎖）與 spring-kafka（lobby 事件廣播）依賴。",
+      "tags": [
+        "configuration",
+        "build-system",
+        "maven",
+        "dependencies"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Maven manifest，近期新增 redisson 3.50.0 與 spring-kafka 以支援分散式鎖與多 instance lobby 廣播。"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java",
+      "type": "file",
+      "name": "RedissonConfig.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java",
+      "summary": "Spring 設定類別，以 single-server 模式定義 RedissonClient bean，指向與房間狀態相同的 Redis，供 RoomServiceImpl 的房間層級分散式鎖使用。",
+      "tags": [
+        "config",
+        "distributed-lock",
+        "redis",
+        "service"
+      ],
+      "complexity": "simple",
+      "languageNotes": "destroyMethod 設為 shutdown，single-server 模式跨 instance 生效以支援水平擴展。"
+    },
+    {
+      "id": "class:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java:RedissonConfig",
+      "type": "class",
+      "name": "RedissonConfig",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java",
+      "lineRange": [
+        10,
+        32
+      ],
+      "summary": "提供 RedissonClient bean 的設定類別，從設定屬性讀取 Redis host/port/password 並建立 single-server client。",
+      "tags": [
+        "config",
+        "factory",
+        "distributed-lock"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java:redissonClient",
+      "type": "function",
+      "name": "redissonClient",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java",
+      "lineRange": [
+        22,
+        31
+      ],
+      "summary": "建立並回傳 RedissonClient bean，設定 single-server 位址，password 非空時才套用，最後以 Redisson.create 建立 client。",
+      "tags": [
+        "factory",
+        "bean",
+        "redis"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
+      "type": "file",
+      "name": "DemoApplication.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
+      "summary": "Spring Boot 後端應用程式進入點，透過 SpringApplication.run 啟動整個服務。",
+      "tags": [
+        "entry-point",
+        "spring-boot",
+        "bootstrap"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:textcombat-api/src/main/java/com/example/demo/DemoApplication.java:DemoApplication",
+      "type": "class",
+      "name": "DemoApplication",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
+      "lineRange": [
+        6,
+        13
+      ],
+      "summary": "標記 @SpringBootApplication 的主類別，承載應用程式啟動的 main 方法。",
+      "tags": [
+        "entry-point",
+        "spring-boot"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/entity/Permission.java",
+      "type": "file",
+      "name": "Permission.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/entity/Permission.java",
+      "summary": "權限 JPA entity，定義 id、code、name、description 欄位，作為 role→permission 授權模型的基礎。",
+      "tags": [
+        "data-model",
+        "entity",
+        "jpa",
+        "security"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:textcombat-api/src/main/java/com/example/demo/entity/Permission.java:Permission",
+      "type": "class",
+      "name": "Permission",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/entity/Permission.java",
+      "lineRange": [
+        9,
+        28
+      ],
+      "summary": "對應權限資料表的 JPA entity，持有權限代碼與描述，供 hasPermission 授權檢查使用。",
+      "tags": [
+        "data-model",
+        "entity",
+        "jpa"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java",
+      "type": "file",
+      "name": "GlobalExceptionHandler.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java",
+      "summary": "全域例外處理器，將 service 拋出的 IllegalArgumentException 轉 400、IllegalStateException 轉 409，並統一處理驗證錯誤與未預期的伺服器例外。",
+      "tags": [
+        "error-handling",
+        "middleware",
+        "validation",
+        "api-handler"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java:GlobalExceptionHandler",
+      "type": "class",
+      "name": "GlobalExceptionHandler",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java",
+      "lineRange": [
+        15,
+        44
+      ],
+      "summary": "@RestControllerAdvice 類別，集中把各類例外映射成對應 HTTP 狀態碼與 JSON 錯誤回應。",
+      "tags": [
+        "error-handling",
+        "middleware",
+        "validation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java:validation",
+      "type": "function",
+      "name": "validation",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java",
+      "lineRange": [
+        35,
+        43
+      ],
+      "summary": "處理 bean validation 失敗，將欄位錯誤收集為 field→message 的 map 並以 400 回傳。",
+      "tags": [
+        "validation",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/repository/PermissionRepository.java",
+      "type": "file",
+      "name": "PermissionRepository.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/repository/PermissionRepository.java",
+      "summary": "Permission entity 的 Spring Data JPA repository 介面，提供權限資料的 CRUD 存取。",
+      "tags": [
+        "repository",
+        "jpa",
+        "data-model"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/security/SecurityConfig.java",
+      "type": "file",
+      "name": "SecurityConfig.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/security/SecurityConfig.java",
+      "summary": "安全性設定類別，提供 BCryptPasswordEncoder bean 供密碼雜湊與驗證使用。",
+      "tags": [
+        "config",
+        "security",
+        "authentication"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java",
+      "type": "file",
+      "name": "WebMvcConfig.java",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java",
+      "summary": "Web MVC 設定類別，將 JwtAuthInterceptor 註冊到 /api/** 路徑，使每個 API 請求都先經過 JWT 認證攔截。",
+      "tags": [
+        "config",
+        "middleware",
+        "security",
+        "interceptor"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java:WebMvcConfig",
+      "type": "class",
+      "name": "WebMvcConfig",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java",
+      "lineRange": [
+        7,
+        22
+      ],
+      "summary": "實作 WebMvcConfigurer，於建構時注入 JwtAuthInterceptor 並在 addInterceptors 中綁定到 /api/** 路徑。",
+      "tags": [
+        "config",
+        "middleware",
+        "interceptor"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:textcombat-api/src/main/resources/application.properties",
+      "type": "config",
+      "name": "application.properties",
+      "filePath": "textcombat-api/src/main/resources/application.properties",
+      "summary": "後端執行設定檔，集中 PostgreSQL、Redis、JWT、HTTPS keystore 設定，並新增 Kafka 連線（bootstrap-servers 與 consumer group textcombat-lobby）以支援 lobby 事件廣播。",
+      "tags": [
+        "configuration",
+        "spring-boot",
+        "database",
+        "kafka"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "機密以 ${POSTGRES_PASSWORD}/${JWT_SECRET} 佔位符引用，不寫死實際值。"
+    },
+    {
+      "id": "file:textcombat-api/src/test/java/com/example/demo/DemoApplicationTests.java",
+      "type": "file",
+      "name": "DemoApplicationTests.java",
+      "filePath": "textcombat-api/src/test/java/com/example/demo/DemoApplicationTests.java",
+      "summary": "Spring Boot context 載入冒煙測試，驗證應用程式的 Spring application context 能成功啟動。",
+      "tags": [
+        "test",
+        "spring-boot",
+        "smoke-test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-web/eslint.config.js",
+      "type": "file",
+      "name": "eslint.config.js",
+      "filePath": "textcombat-web/eslint.config.js",
+      "summary": "前端 ESLint flat config，套用 TypeScript、React Hooks 與 React Refresh 規則以維持程式碼品質。",
+      "tags": [
+        "configuration",
+        "linting",
+        "build-system",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-web/src/App.css",
+      "type": "file",
+      "name": "App.css",
+      "filePath": "textcombat-web/src/App.css",
+      "summary": "App 元件層級的樣式表，提供根容器的基本版面樣式。",
+      "tags": [
+        "stylesheet",
+        "css",
+        "component"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:textcombat-web/src/index.css",
+      "type": "file",
+      "name": "index.css",
+      "filePath": "textcombat-web/src/index.css",
+      "summary": "前端全域基礎樣式表，定義 root 字型、顏色主題、版面與通用元素樣式。",
+      "tags": [
+        "stylesheet",
+        "css",
+        "global-styles"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:textcombat-web/vite.config.ts",
+      "type": "file",
+      "name": "vite.config.ts",
+      "filePath": "textcombat-web/vite.config.ts",
+      "summary": "Vite 建置設定，啟用 React plugin 並把 /api 與 /ws proxy 到 https://localhost:8443（secure: false 以接受後端 self-signed 憑證）。",
+      "tags": [
+        "configuration",
+        "build-system",
+        "vite",
+        "proxy"
+      ],
+      "complexity": "simple"
+    },
     {
       "id": "file:textcombat-api/src/main/java/com/example/demo/config/WebSocketConfig.java",
       "type": "file",
@@ -1902,548 +2775,6 @@
       "complexity": "moderate"
     },
     {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java",
-      "type": "file",
-      "name": "KafkaConfig.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java",
-      "summary": "Spring `@Configuration` bean，建立 Kafka 的 `ProducerFactory`、`KafkaTemplate` 以及 `ConsumerFactory`、`ConcurrentKafkaListenerContainerFactory`，專門承載 `LobbyEvent` 訊息以便 lobby 廣播跨 instance 同步。",
-      "tags": [
-        "configuration",
-        "kafka",
-        "messaging",
-        "spring-bean"
-      ],
-      "complexity": "moderate",
-      "languageNotes": "使用 JSON serializer/deserializer，KafkaListener container factory 提供給 `@KafkaListener` 註解綁定。"
-    },
-    {
-      "id": "class:textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java:KafkaConfig",
-      "type": "class",
-      "name": "KafkaConfig",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java",
-      "lineRange": [
-        1,
-        74
-      ],
-      "summary": "Configuration 類別，定義 Kafka producer / consumer / listener container 等 4 個 bean，用於 `LobbyEvent` 的發佈與訂閱。",
-      "tags": [
-        "configuration",
-        "kafka",
-        "spring-bean"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/config/RedisConfig.java",
-      "type": "file",
-      "name": "RedisConfig.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/config/RedisConfig.java",
-      "summary": "Spring `@Configuration`，建立兩個 `RedisTemplate`：一個序列化 `RoomDTO`（key `room:<id>`）、一個處理字串（如 `lobby:rooms` Set），是房間短暫狀態的核心 infra bean。",
-      "tags": [
-        "configuration",
-        "redis",
-        "spring-bean",
-        "infrastructure"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "class:textcombat-api/src/main/java/com/example/demo/config/RedisConfig.java:RedisConfig",
-      "type": "class",
-      "name": "RedisConfig",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/config/RedisConfig.java",
-      "lineRange": [
-        1,
-        29
-      ],
-      "summary": "提供 `roomRedisTemplate` 與 `stringRedisTemplate` 兩個 bean，給 `RoomServiceImpl` 操作 Redis 用。",
-      "tags": [
-        "configuration",
-        "redis",
-        "spring-bean"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/controller/BossController.java",
-      "type": "file",
-      "name": "BossController.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/controller/BossController.java",
-      "summary": "REST controller，掛載於 `/api/bosses`，僅提供列表 endpoint 將資料庫 Boss 表轉成 `BossDTO` 回傳。",
-      "tags": [
-        "api-handler",
-        "controller",
-        "rest",
-        "boss"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "class:textcombat-api/src/main/java/com/example/demo/controller/BossController.java:BossController",
-      "type": "class",
-      "name": "BossController",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/controller/BossController.java",
-      "lineRange": [
-        10,
-        26
-      ],
-      "summary": "`@RestController`，注入 `BossRepository` 提供 boss 列表查詢。",
-      "tags": [
-        "controller",
-        "rest",
-        "boss"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "endpoint:textcombat-api/src/main/java/com/example/demo/controller/BossController.java:GET-/api/bosses",
-      "type": "endpoint",
-      "name": "GET /api/bosses",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/controller/BossController.java",
-      "summary": "回傳所有 boss 依 `sortOrder`、`id` 排序後的列表，每筆轉為 `BossDTO`。",
-      "tags": [
-        "endpoint",
-        "rest",
-        "boss",
-        "list"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java",
-      "type": "file",
-      "name": "BossDTO.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java",
-      "summary": "Boss 的 API 傳輸物件，提供 `of(Boss)` 靜態工廠由 entity 轉 DTO。",
-      "tags": [
-        "dto",
-        "boss",
-        "data-model"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
-      "type": "file",
-      "name": "InventoryResponse.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
-      "summary": "玩家背包查詢回應 DTO，包含背包格位清單與裝備欄資訊，供 inventory / room 等 service 共用。",
-      "tags": [
-        "dto",
-        "inventory",
-        "data-model"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomAction.java",
-      "type": "file",
-      "name": "RoomAction.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/RoomAction.java",
-      "summary": "Enum，列出玩家在房間內回合可執行的行動類型（攻擊、技能等）。",
-      "tags": [
-        "dto",
-        "enum",
-        "room",
-        "type-definition"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomDTO.java",
-      "type": "file",
-      "name": "RoomDTO.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/RoomDTO.java",
-      "summary": "房間的完整狀態 DTO，會被序列化進 Redis（key `room:<id>`），是房間狀態的傳輸／持久結構，包含成員、phase、outcome、boss HP 等戰鬥資料。",
-      "tags": [
-        "dto",
-        "room",
-        "data-model",
-        "redis-payload"
-      ],
-      "complexity": "simple",
-      "languageNotes": "因會被 Redis 序列化反序列化，欄位需保持可 JSON 化、常量 `MAX_MEMBERS` 限制人數。"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomMemberDTO.java",
-      "type": "file",
-      "name": "RoomMemberDTO.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/RoomMemberDTO.java",
-      "summary": "房間成員 DTO，紀錄玩家 id、暱稱、HP、本回合是否已行動、是否離開等戰鬥狀態欄位。",
-      "tags": [
-        "dto",
-        "room",
-        "data-model"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomOutcome.java",
-      "type": "file",
-      "name": "RoomOutcome.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/RoomOutcome.java",
-      "summary": "Enum，列舉房間最終結果（勝利、失敗、進行中等）。",
-      "tags": [
-        "dto",
-        "enum",
-        "room",
-        "type-definition"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomPhase.java",
-      "type": "file",
-      "name": "RoomPhase.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/RoomPhase.java",
-      "summary": "Enum，定義房間生命週期階段（等待中、戰鬥中、結束）。",
-      "tags": [
-        "dto",
-        "enum",
-        "room",
-        "type-definition"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
-      "type": "file",
-      "name": "RoomSummaryDTO.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
-      "summary": "房間摘要 DTO，用於 lobby 列表與 `LobbyEvent` 傳輸，提供 `of(RoomDTO)` 工廠精簡欄位以減少 broadcast payload。",
-      "tags": [
-        "dto",
-        "lobby",
-        "data-model"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/entity/Boss.java",
-      "type": "file",
-      "name": "Boss.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/entity/Boss.java",
-      "summary": "JPA entity，對應 PostgreSQL boss 表，紀錄 boss 名稱、HP、攻擊、防禦、排序權重等戰鬥屬性。",
-      "tags": [
-        "entity",
-        "jpa",
-        "boss",
-        "data-model"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "class:textcombat-api/src/main/java/com/example/demo/entity/Boss.java:Boss",
-      "type": "class",
-      "name": "Boss",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/entity/Boss.java",
-      "lineRange": [
-        1,
-        46
-      ],
-      "summary": "Boss JPA entity，含 id、name、HP、attack、defense、sortOrder 等欄位。",
-      "tags": [
-        "entity",
-        "jpa",
-        "boss"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEvent.java",
-      "type": "file",
-      "name": "LobbyEvent.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/messaging/LobbyEvent.java",
-      "summary": "Kafka 訊息 payload，封裝 lobby 事件（房間建立、更新、關閉）與對應的 `RoomSummaryDTO`，用於跨 instance 廣播。",
-      "tags": [
-        "messaging",
-        "kafka",
-        "event",
-        "data-model"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java",
-      "type": "file",
-      "name": "LobbyEventConsumer.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java",
-      "summary": "Kafka `@KafkaListener`，訂閱 lobby topic 後將事件轉發為前端 STOMP `/topic/lobby` 廣播，達成多 instance 間 lobby 同步。",
-      "tags": [
-        "messaging",
-        "kafka",
-        "listener",
-        "websocket"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "class:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java:LobbyEventConsumer",
-      "type": "class",
-      "name": "LobbyEventConsumer",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java",
-      "lineRange": [
-        1,
-        32
-      ],
-      "summary": "監聽 Kafka topic，於 `onLobbyEvent` 收到事件後透過 `SimpMessagingTemplate` 廣播給前端訂閱者。",
-      "tags": [
-        "kafka-listener",
-        "messaging",
-        "websocket"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
-      "type": "file",
-      "name": "LobbyEventPublisher.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
-      "summary": "包裝 `KafkaTemplate` 對外提供 `publishCreated` / `publishUpdated` / `publishClosed` 三個方法，供 `RoomServiceImpl` 在房間狀態改變時發佈 lobby 事件。",
-      "tags": [
-        "messaging",
-        "kafka",
-        "publisher",
-        "event"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "class:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java:LobbyEventPublisher",
-      "type": "class",
-      "name": "LobbyEventPublisher",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
-      "lineRange": [
-        1,
-        47
-      ],
-      "summary": "封裝 Kafka 發送邏輯，固定 topic 常數 `TOPIC`，提供 3 種 lobby 事件的發佈介面。",
-      "tags": [
-        "messaging",
-        "kafka",
-        "publisher"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/repository/BossRepository.java",
-      "type": "file",
-      "name": "BossRepository.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/repository/BossRepository.java",
-      "summary": "Spring Data JPA repository，提供依 `sortOrder` 排序查詢所有 boss 的方法。",
-      "tags": [
-        "repository",
-        "jpa",
-        "boss",
-        "data-access"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
-      "type": "file",
-      "name": "GoldService.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
-      "summary": "金幣服務 interface，定義 `changeGold` 與 `getGold` 等唯一合法操作使用者金幣的方法簽章。",
-      "tags": [
-        "service-interface",
-        "gold",
-        "api-contract"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
-      "type": "file",
-      "name": "InventoryService.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
-      "summary": "背包服務 interface，定義列表、裝備、卸裝、使用、丟棄等操作的方法簽章。",
-      "tags": [
-        "service-interface",
-        "inventory",
-        "api-contract"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
-      "type": "file",
-      "name": "RoomService.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
-      "summary": "房間服務 interface，定義 createRoom / joinRoom / leaveRoom / act / listOpen / getRoom 等多人房間生命週期方法。",
-      "tags": [
-        "service-interface",
-        "room",
-        "api-contract"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "type": "file",
-      "name": "RoomServiceImpl.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "summary": "房間核心邏輯實作：以 Redis (`room:<id>`、`lobby:rooms`) 持有短暫戰鬥狀態、以 `synchronized` intern lock 控制單 instance 並發、透過 `SimpMessagingTemplate` 廣播 `/topic/room/<id>`、並透過 `LobbyEventPublisher` 同步 lobby。包含玩家行動、回合推進、boss 階段切換等戰鬥流程。",
-      "tags": [
-        "service",
-        "room",
-        "redis",
-        "websocket",
-        "game-logic",
-        "tested"
-      ],
-      "complexity": "complex",
-      "languageNotes": "並發鎖 `synchronized((\"__room_lock__:\" + roomId).intern())` 僅在單一 instance 有效，水平擴展時需改用分散式鎖（Redisson 已注入但未全面採用）。"
-    },
-    {
-      "id": "class:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:RoomServiceImpl",
-      "type": "class",
-      "name": "RoomServiceImpl",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "lineRange": [
-        26,
-        521
-      ],
-      "summary": "`RoomService` 實作，協調 Redis、JPA、Kafka publisher、STOMP broker、GoldService、InventoryService，是整個戰鬥系統的中樞。",
-      "tags": [
-        "service-impl",
-        "room",
-        "game-logic",
-        "complex"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:createRoom",
-      "type": "function",
-      "name": "createRoom",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "lineRange": [
-        80,
-        160
-      ],
-      "summary": "建立新房間：初始化 `RoomDTO`、寫入 Redis 並加進 `lobby:rooms`、廣播 lobby created 事件。",
-      "tags": [
-        "room",
-        "create",
-        "redis-write"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:joinRoom",
-      "type": "function",
-      "name": "joinRoom",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "lineRange": [
-        160,
-        230
-      ],
-      "summary": "玩家加入房間：取房鎖、檢查人數上限與 phase、寫回 Redis、broadcast 房間更新與 lobby 更新。",
-      "tags": [
-        "room",
-        "join",
-        "concurrency"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:leaveRoom",
-      "type": "function",
-      "name": "leaveRoom",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "lineRange": [
-        230,
-        290
-      ],
-      "summary": "玩家離開房間：標記成員 left、若房空則關閉並縮短 TTL、廣播狀態。",
-      "tags": [
-        "room",
-        "leave",
-        "cleanup"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:act",
-      "type": "function",
-      "name": "act",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "lineRange": [
-        290,
-        420
-      ],
-      "summary": "玩家行動入口：處理攻擊／技能、調用 `advanceIfRoundDone` 推進回合至 BOSS 階段、計算傷害、結算勝負並發金幣獎勵。",
-      "tags": [
-        "room",
-        "battle",
-        "turn-logic"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:listOpen",
-      "type": "function",
-      "name": "listOpen",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "lineRange": [
-        420,
-        460
-      ],
-      "summary": "讀取 `lobby:rooms` Set，組出目前開放中的房間 `RoomSummaryDTO` 清單給 lobby 頁面。",
-      "tags": [
-        "room",
-        "lobby",
-        "query"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:getRoom",
-      "type": "function",
-      "name": "getRoom",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "lineRange": [
-        460,
-        521
-      ],
-      "summary": "依 roomId 從 Redis 撈出完整 `RoomDTO`，供 controller / WebSocket 初次訂閱時取狀態。",
-      "tags": [
-        "room",
-        "query",
-        "redis-read"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
-      "type": "file",
-      "name": "RoomServiceImplBroadcastTest.java",
-      "filePath": "textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
-      "summary": "專注於驗證 `RoomServiceImpl` 在各種狀態改變後是否正確呼叫 `SimpMessagingTemplate.convertAndSend` 廣播 `/topic/room/<id>` 與 lobby 事件的單元測試。",
-      "tags": [
-        "test",
-        "unit-test",
-        "websocket",
-        "broadcast"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "type": "file",
-      "name": "RoomServiceImplTest.java",
-      "filePath": "textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "summary": "`RoomServiceImpl` 的核心單元測試，覆蓋 createRoom / joinRoom / leaveRoom / act 等流程：使用 Mockito mock Redis、repository、GoldService 等依賴並以 AssertJ 斷言行為。",
-      "tags": [
-        "test",
-        "unit-test",
-        "room",
-        "game-logic"
-      ],
-      "complexity": "complex"
-    },
-    {
       "id": "file:textcombat-api/src/main/java/com/example/demo/controller/EnhanceController.java",
       "type": "file",
       "name": "EnhanceController.java",
@@ -3088,311 +3419,662 @@
       "complexity": "simple"
     },
     {
-      "id": "document:CLAUDE.md",
-      "type": "document",
-      "name": "CLAUDE.md",
-      "filePath": "CLAUDE.md",
-      "summary": "整個 monorepo 的權威說明文件，描述 textcombat-api（Spring Boot 後端）與 textcombat-web（Vite + React 前端）兩個子專案的指令、JWT 認證流程、SQL/Redis 狀態切分、WebSocket/STOMP 即時更新與測試慣例。",
-      "tags": [
-        "documentation",
-        "entry-point",
-        "architecture",
-        "overview"
-      ],
-      "complexity": "moderate",
-      "languageNotes": "鎖定給 AI agent 閱讀的工程文件，是接手此 repo 時最關鍵的單一入口。"
-    },
-    {
-      "id": "config:textcombat-api/.gitattributes",
-      "type": "config",
-      "name": ".gitattributes",
-      "filePath": "textcombat-api/.gitattributes",
-      "summary": "後端子專案的 Git 屬性設定，主要控制換行符號正規化與檔案類型處理。",
-      "tags": [
-        "configuration",
-        "git",
-        "vcs"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "config:textcombat-api/pom.xml",
-      "type": "config",
-      "name": "pom.xml",
-      "filePath": "textcombat-api/pom.xml",
-      "summary": "textcombat-api 的 Maven 建置與 dependency manifest，宣告 Spring Boot 4.0.5、Java 21 與 JPA、Security、WebSocket、Redis、Redisson、JWT、Lombok 等依賴。",
-      "tags": [
-        "configuration",
-        "build-system",
-        "maven",
-        "dependency"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java",
-      "type": "file",
-      "name": "RedissonConfig.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java",
-      "summary": "Spring 設定類別，依 application.properties 的 host／port／password 建立單節點 RedissonClient，供分散式鎖與 Redis 操作使用。",
-      "tags": [
-        "configuration",
-        "redis",
-        "redisson",
-        "spring-config"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "class:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java:RedissonConfig",
-      "type": "class",
-      "name": "RedissonConfig",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java",
+      "id": "function:textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java:of",
+      "type": "function",
+      "name": "of",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java",
       "lineRange": [
-        11,
-        32
+        27,
+        39
       ],
-      "summary": "@Configuration 類別，提供 RedissonClient bean；當 password 屬性非空時會帶入認證。",
+      "summary": "靜態工廠方法，將 Boss entity 轉換成對外的 BossDTO，複製 id、code、名稱、數值（HP／攻擊／防禦）與獎勵金幣等欄位。",
       "tags": [
-        "configuration",
-        "redis",
-        "spring-bean"
+        "factory",
+        "dto",
+        "mapper"
       ],
       "complexity": "simple"
     },
     {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
-      "type": "file",
-      "name": "DemoApplication.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
-      "summary": "Spring Boot 應用程式的進入點，啟動整個 textcombat-api 後端服務。",
-      "tags": [
-        "entry-point",
-        "spring-boot",
-        "bootstrap"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "class:textcombat-api/src/main/java/com/example/demo/DemoApplication.java:DemoApplication",
-      "type": "class",
-      "name": "DemoApplication",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
+      "id": "function:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java:of",
+      "type": "function",
+      "name": "of",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
       "lineRange": [
-        1,
-        13
+        21,
+        34
       ],
-      "summary": "@SpringBootApplication 標註的主類別，於 main 方法呼叫 SpringApplication.run 啟動服務。",
+      "summary": "靜態工廠方法，從 RoomDTO 萃取 lobby 摘要：房名、Boss 概況與目前未離開人數，產生作為 LobbyEvent payload 的 RoomSummaryDTO。",
       "tags": [
-        "entry-point",
-        "spring-boot"
+        "factory",
+        "dto",
+        "lobby",
+        "mapper"
       ],
       "complexity": "simple"
     },
     {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/entity/Permission.java",
-      "type": "file",
-      "name": "Permission.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/entity/Permission.java",
-      "summary": "JPA entity，對應 permissions 資料表；以 code 為唯一識別，搭配 Role 多對多用於 JwtAuthInterceptor 的權限比對。",
-      "tags": [
-        "data-model",
-        "entity",
-        "jpa",
-        "permission"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "class:textcombat-api/src/main/java/com/example/demo/entity/Permission.java:Permission",
-      "type": "class",
-      "name": "Permission",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/entity/Permission.java",
+      "id": "function:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java:publishCreated",
+      "type": "function",
+      "name": "publishCreated",
+      "filePath": "textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
       "lineRange": [
-        14,
-        28
+        29,
+        31
       ],
-      "summary": "權限資料表的 JPA entity，欄位包含 id、code、name、description。",
+      "summary": "發布房間「建立」事件：以 RoomSummaryDTO 包成 LobbyEvent.created 並透過 send 送往 Kafka topic，供各 instance 更新大廳。",
       "tags": [
-        "entity",
-        "jpa",
-        "data-model"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java",
-      "type": "file",
-      "name": "GlobalExceptionHandler.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java",
-      "summary": "@RestControllerAdvice 全域例外處理器，把 IllegalArgumentException 轉成 400、IllegalStateException 轉成 409、其他 RuntimeException 轉成 500，並統一處理 @Valid 驗證錯誤。",
-      "tags": [
-        "exception-handler",
-        "middleware",
-        "error-handling",
-        "spring-mvc"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "class:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java:GlobalExceptionHandler",
-      "type": "class",
-      "name": "GlobalExceptionHandler",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java",
-      "lineRange": [
-        17,
-        44
-      ],
-      "summary": "集中處理 controller 拋出的例外，把 service 層丟出的 IllegalArgumentException／IllegalStateException 對應到正確的 HTTP 狀態碼，回傳統一格式錯誤訊息。",
-      "tags": [
-        "exception-handler",
-        "error-handling",
-        "spring-mvc"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/repository/PermissionRepository.java",
-      "type": "file",
-      "name": "PermissionRepository.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/repository/PermissionRepository.java",
-      "summary": "Permission entity 的 Spring Data JPA repository，提供基本 CRUD 操作。",
-      "tags": [
-        "repository",
-        "jpa",
-        "data-access"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/security/SecurityConfig.java",
-      "type": "file",
-      "name": "SecurityConfig.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/security/SecurityConfig.java",
-      "summary": "Spring 設定類別，僅暴露 BCryptPasswordEncoder bean 給 AccountService 在註冊／登入時做密碼雜湊與比對。",
-      "tags": [
-        "configuration",
-        "security",
-        "password-encoder",
-        "spring-config"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java",
-      "type": "file",
-      "name": "WebMvcConfig.java",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java",
-      "summary": "WebMvcConfigurer 實作，將 JwtAuthInterceptor 註冊到 /api/** 路徑，使所有 API 請求都通過 JWT 解析與 @RequirePermission 檢查。",
-      "tags": [
-        "configuration",
-        "middleware",
-        "spring-mvc",
-        "interceptor"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "class:textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java:WebMvcConfig",
-      "type": "class",
-      "name": "WebMvcConfig",
-      "filePath": "textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java",
-      "lineRange": [
-        8,
-        22
-      ],
-      "summary": "註冊 JwtAuthInterceptor 至 /api/** 路徑的 MVC 設定類別。",
-      "tags": [
-        "configuration",
-        "interceptor",
-        "spring-mvc"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "config:textcombat-api/src/main/resources/application.properties",
-      "type": "config",
-      "name": "application.properties",
-      "filePath": "textcombat-api/src/main/resources/application.properties",
-      "summary": "Spring Boot 主設定檔，定義 HTTPS 8443、PostgreSQL 連線、JPA ddl-auto=validate、Redis 連線、JWT secret 等，敏感值透過 ${POSTGRES_PASSWORD} 與 ${JWT_SECRET} 由 .env 注入。",
-      "tags": [
-        "configuration",
-        "spring-boot",
-        "runtime-config",
-        "database"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:textcombat-api/src/test/java/com/example/demo/DemoApplicationTests.java",
-      "type": "file",
-      "name": "DemoApplicationTests.java",
-      "filePath": "textcombat-api/src/test/java/com/example/demo/DemoApplicationTests.java",
-      "summary": "Spring Boot 預設的 context 載入冒煙測試，確認應用程式可正常啟動。",
-      "tags": [
-        "test",
-        "spring-boot",
-        "smoke-test"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-web/eslint.config.js",
-      "type": "file",
-      "name": "eslint.config.js",
-      "filePath": "textcombat-web/eslint.config.js",
-      "summary": "前端 ESLint flat config，套用 TypeScript、React Hooks、React Refresh 等規則組。",
-      "tags": [
-        "configuration",
-        "linting",
-        "eslint",
-        "build-system"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-web/src/App.css",
-      "type": "file",
-      "name": "App.css",
-      "filePath": "textcombat-web/src/App.css",
-      "summary": "App 元件層級樣式，內容極少，主要為基本 layout 微調。",
-      "tags": [
-        "stylesheet",
-        "css",
-        "frontend"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:textcombat-web/src/index.css",
-      "type": "file",
-      "name": "index.css",
-      "filePath": "textcombat-web/src/index.css",
-      "summary": "全站全域樣式，定義 body、html、root 與通用元素的基礎 CSS，由 main.tsx 載入。",
-      "tags": [
-        "stylesheet",
-        "css",
-        "global-styles",
-        "frontend"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "config:textcombat-web/vite.config.ts",
-      "type": "config",
-      "name": "vite.config.ts",
-      "filePath": "textcombat-web/vite.config.ts",
-      "summary": "Vite 建置設定，設定 React plugin 並將 /api 與 /ws 反向代理到 https://localhost:8443（secure: false 接受 self-signed 憑證）。",
-      "tags": [
-        "configuration",
-        "build-system",
-        "vite",
-        "dev-server"
+        "kafka",
+        "publisher",
+        "lobby",
+        "event"
       ],
       "complexity": "simple"
     }
   ],
   "edges": [
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEvent.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java:consumerFactory",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java:consumerFactory",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/config/RedisConfig.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomDTO.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/controller/BossController.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/controller/BossController.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/repository/BossRepository.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/Boss.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEvent.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java:onLobbyEvent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java:onLobbyEvent",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java:onLobbyEvent",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:listOpen",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java:send",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/repository/BossRepository.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/Boss.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomAction.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomDTO.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "class:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:RoomServiceImpl",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:createRoom",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:joinRoom",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:leaveRoom",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:act",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:listOpen",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:advanceIfRoundDone",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:bossTurn",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:victory",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:doPotion",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:newMember",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "class:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:RoomServiceImpl",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
+      "type": "implements",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:victory",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomAction.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomDTO.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomMemberDTO.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomOutcome.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomPhase.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/UsersEntity.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomAction.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomDTO.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomMemberDTO.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomOutcome.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomPhase.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/Boss.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/Item.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/ItemType.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/UserInventoryItem.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/UsersEntity.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/repository/BossRepository.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/repository/ItemRepository.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/repository/UserEquipmentRepository.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/repository/UserInventoryItemRepository.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/repository/UserRepository.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+      "target": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java",
+      "target": "class:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java:RedissonConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java:redissonClient",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
+      "target": "class:textcombat-api/src/main/java/com/example/demo/DemoApplication.java:DemoApplication",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/entity/Permission.java",
+      "target": "class:textcombat-api/src/main/java/com/example/demo/entity/Permission.java:Permission",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java",
+      "target": "class:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java:GlobalExceptionHandler",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java:validation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java",
+      "target": "class:textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java:WebMvcConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/repository/PermissionRepository.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/Permission.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "config:textcombat-api/pom.xml",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:textcombat-api/src/main/resources/application.properties",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:textcombat-api/src/main/resources/application.properties",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:textcombat-web/vite.config.ts",
+      "target": "file:textcombat-web/src/index.css",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:CLAUDE.md",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:CLAUDE.md",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:CLAUDE.md",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:CLAUDE.md",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
     {
       "source": "file:textcombat-api/src/main/java/com/example/demo/config/WebSocketConfig.java",
       "target": "file:textcombat-api/src/main/java/com/example/demo/security/JwtUtil.java",
@@ -3599,13 +4281,6 @@
     {
       "source": "file:textcombat-api/src/main/java/com/example/demo/controller/GoldController.java",
       "target": "file:textcombat-api/src/main/java/com/example/demo/security/RequirePermission.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/controller/GoldController.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -3900,13 +4575,6 @@
     {
       "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/GoldServiceImpl.java",
       "target": "file:textcombat-api/src/main/java/com/example/demo/repository/UserRepository.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/GoldServiceImpl.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -4213,29 +4881,8 @@
       "weight": 0.7
     },
     {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/EnhanceServiceImpl.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/EnhanceServiceImpl.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
       "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/InventoryServiceImpl.java",
       "target": "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryItemDTO.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/InventoryServiceImpl.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -4285,13 +4932,6 @@
     {
       "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/InventoryServiceImpl.java",
       "target": "file:textcombat-api/src/main/java/com/example/demo/repository/UserInventoryItemRepository.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/InventoryServiceImpl.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -4347,13 +4987,6 @@
     },
     {
       "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/ShopServiceImpl.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/ShopServiceImpl.java",
       "target": "file:textcombat-api/src/main/java/com/example/demo/service/ShopService.java",
       "type": "imports",
       "direction": "forward",
@@ -4376,13 +5009,6 @@
     {
       "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/EnhanceServiceImplTest.java",
       "target": "file:textcombat-api/src/main/java/com/example/demo/dto/EnhanceResultResponse.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/EnhanceServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -4458,27 +5084,6 @@
       "weight": 0.7
     },
     {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/EnhanceServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/EnhanceServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/InventoryServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
       "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/InventoryServiceImplTest.java",
       "target": "file:textcombat-api/src/main/java/com/example/demo/entity/Item.java",
       "type": "imports",
@@ -4572,13 +5177,6 @@
     {
       "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/ShopServiceImplTest.java",
       "target": "file:textcombat-api/src/main/java/com/example/demo/repository/UserInventoryItemRepository.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/ShopServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -5103,13 +5701,6 @@
     },
     {
       "source": "file:textcombat-web/src/main.tsx",
-      "target": "file:textcombat-web/src/App.css",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-web/src/main.tsx",
       "target": "file:textcombat-web/src/App.tsx",
       "type": "imports",
       "direction": "forward",
@@ -5319,503 +5910,6 @@
       "weight": 1
     },
     {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java:KafkaConfig",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java:KafkaConfig",
-      "type": "exports",
-      "direction": "forward",
-      "weight": 0.8
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEvent.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/config/RedisConfig.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/config/RedisConfig.java:RedisConfig",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/config/RedisConfig.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/config/RedisConfig.java:RedisConfig",
-      "type": "exports",
-      "direction": "forward",
-      "weight": 0.8
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/config/RedisConfig.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomDTO.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/controller/BossController.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/controller/BossController.java:BossController",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/controller/BossController.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/controller/BossController.java:BossController",
-      "type": "exports",
-      "direction": "forward",
-      "weight": 0.8
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/controller/BossController.java",
-      "target": "endpoint:textcombat-api/src/main/java/com/example/demo/controller/BossController.java:GET-/api/bosses",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/controller/BossController.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/controller/BossController.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/repository/BossRepository.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/Boss.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/entity/Boss.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/entity/Boss.java:Boss",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/entity/Boss.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/entity/Boss.java:Boss",
-      "type": "exports",
-      "direction": "forward",
-      "weight": 0.8
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEvent.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java:LobbyEventConsumer",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java:LobbyEventConsumer",
-      "type": "exports",
-      "direction": "forward",
-      "weight": 0.8
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java:LobbyEventPublisher",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java:LobbyEventPublisher",
-      "type": "exports",
-      "direction": "forward",
-      "weight": 0.8
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/repository/BossRepository.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/Boss.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomAction.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomDTO.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:RoomServiceImpl",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:RoomServiceImpl",
-      "type": "exports",
-      "direction": "forward",
-      "weight": 0.8
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:createRoom",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:joinRoom",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:leaveRoom",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:act",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:listOpen",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "target": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:getRoom",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "class:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:RoomServiceImpl",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
-      "type": "implements",
-      "direction": "forward",
-      "weight": 0.9
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomAction.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomDTO.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomMemberDTO.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomOutcome.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomPhase.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/UsersEntity.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "target": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
-      "type": "tested_by",
-      "direction": "forward",
-      "weight": 0.5
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomAction.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomDTO.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomMemberDTO.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomOutcome.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomPhase.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/Boss.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/Item.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/ItemType.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/UserInventoryItem.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/UsersEntity.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/repository/BossRepository.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/repository/ItemRepository.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/repository/UserEquipmentRepository.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/repository/UserInventoryItemRepository.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/repository/UserRepository.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "target": "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-      "type": "tested_by",
-      "direction": "forward",
-      "weight": 0.5
-    },
-    {
       "source": "file:textcombat-api/src/main/java/com/example/demo/controller/EnhanceController.java",
       "target": "class:textcombat-api/src/main/java/com/example/demo/controller/EnhanceController.java:EnhanceController",
       "type": "contains",
@@ -5957,13 +6051,6 @@
     },
     {
       "source": "file:textcombat-api/src/main/java/com/example/demo/controller/InventoryController.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/controller/InventoryController.java",
       "target": "file:textcombat-api/src/main/java/com/example/demo/service/impl/InventoryServiceImpl.java",
       "type": "calls",
       "direction": "forward",
@@ -6045,20 +6132,6 @@
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/controller/RoomController.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/controller/RoomController.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "type": "calls",
-      "direction": "forward",
-      "weight": 0.8
     },
     {
       "source": "file:textcombat-api/src/main/java/com/example/demo/controller/ShopController.java",
@@ -6187,212 +6260,214 @@
       "weight": 0.5
     },
     {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java:RedissonConfig",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java:RedissonConfig",
-      "type": "exports",
-      "direction": "forward",
-      "weight": 0.8
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/DemoApplication.java:DemoApplication",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/DemoApplication.java:DemoApplication",
-      "type": "exports",
-      "direction": "forward",
-      "weight": 0.8
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/entity/Permission.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/entity/Permission.java:Permission",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/entity/Permission.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/entity/Permission.java:Permission",
-      "type": "exports",
-      "direction": "forward",
-      "weight": 0.8
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java:GlobalExceptionHandler",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java:GlobalExceptionHandler",
-      "type": "exports",
-      "direction": "forward",
-      "weight": 0.8
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java:WebMvcConfig",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java",
-      "target": "class:textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java:WebMvcConfig",
-      "type": "exports",
-      "direction": "forward",
-      "weight": 0.8
-    },
-    {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/repository/PermissionRepository.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/entity/Permission.java",
+      "source": "file:textcombat-api/src/main/java/com/example/demo/controller/GoldController.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
       "type": "imports",
       "direction": "forward",
-      "weight": 0.7
+      "weight": 0.7,
+      "recoveredFromImportMap": true
     },
     {
-      "source": "file:textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/security/JwtAuthInterceptor.java",
-      "type": "depends_on",
+      "source": "file:textcombat-api/src/main/java/com/example/demo/controller/InventoryController.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
+      "type": "imports",
       "direction": "forward",
-      "weight": 0.6
+      "weight": 0.7,
+      "recoveredFromImportMap": true
     },
     {
-      "source": "config:textcombat-api/pom.xml",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
-      "type": "configures",
+      "source": "file:textcombat-api/src/main/java/com/example/demo/controller/RoomController.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
+      "type": "imports",
       "direction": "forward",
-      "weight": 0.6
+      "weight": 0.7,
+      "recoveredFromImportMap": true
     },
     {
-      "source": "config:textcombat-api/src/main/resources/application.properties",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
-      "type": "configures",
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/EnhanceServiceImpl.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
+      "type": "imports",
       "direction": "forward",
-      "weight": 0.6
+      "weight": 0.7,
+      "recoveredFromImportMap": true
     },
     {
-      "source": "config:textcombat-api/src/main/resources/application.properties",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java",
-      "type": "configures",
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/EnhanceServiceImpl.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
+      "type": "imports",
       "direction": "forward",
-      "weight": 0.6
+      "weight": 0.7,
+      "recoveredFromImportMap": true
     },
     {
-      "source": "config:textcombat-web/vite.config.ts",
-      "target": "file:textcombat-web/src/main.tsx",
-      "type": "configures",
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/GoldServiceImpl.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
+      "type": "imports",
       "direction": "forward",
-      "weight": 0.6
+      "weight": 0.7,
+      "recoveredFromImportMap": true
     },
     {
-      "source": "document:CLAUDE.md",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
-      "type": "documents",
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/InventoryServiceImpl.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
+      "type": "imports",
       "direction": "forward",
-      "weight": 0.5
+      "weight": 0.7,
+      "recoveredFromImportMap": true
     },
     {
-      "source": "document:CLAUDE.md",
-      "target": "file:textcombat-web/src/main.tsx",
-      "type": "documents",
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/InventoryServiceImpl.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
+      "type": "imports",
       "direction": "forward",
-      "weight": 0.5
+      "weight": 0.7,
+      "recoveredFromImportMap": true
     },
     {
-      "source": "document:CLAUDE.md",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/security/JwtAuthInterceptor.java",
-      "type": "documents",
+      "source": "file:textcombat-api/src/main/java/com/example/demo/service/impl/ShopServiceImpl.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
+      "type": "imports",
       "direction": "forward",
-      "weight": 0.5
+      "weight": 0.7,
+      "recoveredFromImportMap": true
     },
     {
-      "source": "document:CLAUDE.md",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-      "type": "documents",
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/EnhanceServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
+      "type": "imports",
       "direction": "forward",
-      "weight": 0.5
+      "weight": 0.7,
+      "recoveredFromImportMap": true
     },
     {
-      "source": "document:CLAUDE.md",
-      "target": "file:textcombat-api/src/main/java/com/example/demo/config/WebSocketConfig.java",
-      "type": "documents",
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/EnhanceServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
+      "type": "imports",
       "direction": "forward",
-      "weight": 0.5
+      "weight": 0.7,
+      "recoveredFromImportMap": true
     },
     {
-      "source": "file:textcombat-web/src/index.css",
-      "target": "file:textcombat-web/src/main.tsx",
-      "type": "depends_on",
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/EnhanceServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
+      "type": "imports",
       "direction": "forward",
-      "weight": 0.6
+      "weight": 0.7,
+      "recoveredFromImportMap": true
     },
     {
-      "source": "file:textcombat-web/src/App.css",
-      "target": "file:textcombat-web/src/App.tsx",
-      "type": "depends_on",
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/InventoryServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
+      "type": "imports",
       "direction": "forward",
-      "weight": 0.6
+      "weight": 0.7,
+      "recoveredFromImportMap": true
     },
     {
-      "source": "config:textcombat-web/tsconfig.node.json",
-      "target": "config:textcombat-web/vite.config.ts",
-      "type": "configures",
+      "source": "file:textcombat-api/src/test/java/com/example/demo/service/impl/ShopServiceImplTest.java",
+      "target": "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
+      "type": "imports",
       "direction": "forward",
-      "weight": 0.7
+      "weight": 0.7,
+      "recoveredFromImportMap": true
+    },
+    {
+      "source": "file:textcombat-web/src/main.tsx",
+      "target": "file:textcombat-web/src/App.css",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7,
+      "recoveredFromImportMap": true
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/controller/BossController.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java:of",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java:of",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java:of",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java:of",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java:of",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:createRoom",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java:publishCreated",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java:createRoom",
+      "target": "function:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java:of",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
     }
   ],
   "layers": [
     {
       "id": "layer:backend-entry-config",
-      "name": "後端 - 應用啟動與基礎設施 Config",
-      "description": "Spring Boot 啟動類別 DemoApplication 與 WebSocket / Kafka / Redis / Redisson 等基礎設施 @Configuration bean，負責註冊 broker、Kafka producer、Redis 連線與 Redisson 分散式鎖客戶端。",
+      "name": "後端 - 應用啟動、基礎設施 Config 與訊息廣播",
+      "description": "後端啟動進入點、基礎設施設定（Kafka、Redis、Redisson 分散式鎖、WebSocket/STOMP broker、application.properties）與 Kafka 大廳事件廣播（LobbyEvent 發布／消費）。",
       "nodeIds": [
-        "file:textcombat-api/src/main/java/com/example/demo/config/WebSocketConfig.java",
         "file:textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java",
         "file:textcombat-api/src/main/java/com/example/demo/config/RedisConfig.java",
         "file:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java",
         "file:textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
-        "config:textcombat-api/src/main/resources/application.properties"
+        "config:textcombat-api/src/main/resources/application.properties",
+        "file:textcombat-api/src/main/java/com/example/demo/config/WebSocketConfig.java",
+        "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEvent.java",
+        "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java",
+        "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java"
       ]
     },
     {
       "id": "layer:backend-security",
       "name": "後端 - 認證與權限層 (Security / AOP)",
-      "description": "JWT 簽發驗證、JwtAuthInterceptor、CurrentUserHolder ThreadLocal、@Public / @RequirePermission AOP 註解，以及 SecurityConfig / WebMvcConfig 攔截器註冊與全域例外處理。",
+      "description": "JWT 簽發解析、CurrentUserHolder ThreadLocal、JwtAuthInterceptor 與 @Public/@RequirePermission 註解構成的認證授權層。",
       "nodeIds": [
+        "file:textcombat-api/src/main/java/com/example/demo/security/SecurityConfig.java",
+        "file:textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java",
         "file:textcombat-api/src/main/java/com/example/demo/security/JwtAuthInterceptor.java",
         "file:textcombat-api/src/main/java/com/example/demo/security/JwtUtil.java",
         "file:textcombat-api/src/main/java/com/example/demo/security/Public.java",
         "file:textcombat-api/src/main/java/com/example/demo/security/RequirePermission.java",
-        "file:textcombat-api/src/main/java/com/example/demo/security/CurrentUserHolder.java",
-        "file:textcombat-api/src/main/java/com/example/demo/security/SecurityConfig.java",
-        "file:textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java",
-        "file:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java"
+        "file:textcombat-api/src/main/java/com/example/demo/security/CurrentUserHolder.java"
       ]
     },
     {
       "id": "layer:backend-controller",
       "name": "後端 - Controller / REST Endpoint 層",
-      "description": "對外 HTTP REST 端點：Account / Gold / Boss / Enhance / Inventory / Room / Shop Controller 及其註冊的 /api/** 路由，負責解析請求、呼叫 service、回傳 DTO。",
+      "description": "/api/** 的 REST controller 與其 HTTP endpoint，接收請求、委派 service 並回傳 DTO。",
       "nodeIds": [
+        "file:textcombat-api/src/main/java/com/example/demo/controller/BossController.java",
         "file:textcombat-api/src/main/java/com/example/demo/controller/AccountController.java",
         "file:textcombat-api/src/main/java/com/example/demo/controller/GoldController.java",
-        "file:textcombat-api/src/main/java/com/example/demo/controller/BossController.java",
-        "endpoint:textcombat-api/src/main/java/com/example/demo/controller/BossController.java:GET-/api/bosses",
         "file:textcombat-api/src/main/java/com/example/demo/controller/EnhanceController.java",
         "endpoint:textcombat-api/src/main/java/com/example/demo/controller/EnhanceController.java:GET-/api/enhance/preview/{inventoryItemId}",
         "endpoint:textcombat-api/src/main/java/com/example/demo/controller/EnhanceController.java:POST-/api/enhance",
@@ -6417,8 +6492,13 @@
     {
       "id": "layer:backend-service",
       "name": "後端 - Service 業務邏輯層",
-      "description": "Service 介面與 impl 實作 (AccountServiceImpl、GoldServiceImpl、EnhanceServiceImpl、InventoryServiceImpl、ShopServiceImpl、RoomServiceImpl)，包含金幣交易、強化公式、戰鬥房 synchronized 並發控制，以及 Kafka lobby event 發送 / 消費 messaging 元件。",
+      "description": "遊戲核心業務邏輯（帳號、金幣、背包、強化、商店、房間戰鬥）介面與 impl 實作，含全域例外處理。",
       "nodeIds": [
+        "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
+        "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
+        "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
+        "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+        "file:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java",
         "file:textcombat-api/src/main/java/com/example/demo/service/AccountService.java",
         "file:textcombat-api/src/main/java/com/example/demo/service/impl/AccountServiceImpl.java",
         "file:textcombat-api/src/main/java/com/example/demo/service/impl/GoldServiceImpl.java",
@@ -6426,46 +6506,47 @@
         "file:textcombat-api/src/main/java/com/example/demo/service/ShopService.java",
         "file:textcombat-api/src/main/java/com/example/demo/service/impl/EnhanceServiceImpl.java",
         "file:textcombat-api/src/main/java/com/example/demo/service/impl/InventoryServiceImpl.java",
-        "file:textcombat-api/src/main/java/com/example/demo/service/impl/ShopServiceImpl.java",
-        "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
-        "file:textcombat-api/src/main/java/com/example/demo/service/InventoryService.java",
-        "file:textcombat-api/src/main/java/com/example/demo/service/RoomService.java",
-        "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-        "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEvent.java",
-        "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java",
-        "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java"
+        "file:textcombat-api/src/main/java/com/example/demo/service/impl/ShopServiceImpl.java"
       ]
     },
     {
       "id": "layer:backend-data",
       "name": "後端 - Repository / Entity 資料持久層",
-      "description": "Spring Data JPA Repository (User、Role、Permission、Item、UserEquipment、UserInventoryItem、GoldTransaction、Boss) 與對應的 @Entity 領域模型；對應 PostgreSQL 作為真相來源 (ddl-auto=validate)。",
+      "description": "JPA Entity 與 Spring Data Repository，對應 PostgreSQL 的使用者、角色權限、金幣交易與 Boss 等真相來源資料。",
       "nodeIds": [
-        "file:textcombat-api/src/main/java/com/example/demo/repository/GoldTransactionRepository.java",
-        "file:textcombat-api/src/main/java/com/example/demo/repository/RoleRepository.java",
-        "file:textcombat-api/src/main/java/com/example/demo/repository/UserRepository.java",
-        "file:textcombat-api/src/main/java/com/example/demo/repository/ItemRepository.java",
-        "file:textcombat-api/src/main/java/com/example/demo/repository/UserEquipmentRepository.java",
-        "file:textcombat-api/src/main/java/com/example/demo/repository/UserInventoryItemRepository.java",
+        "file:textcombat-api/src/main/java/com/example/demo/entity/Boss.java",
         "file:textcombat-api/src/main/java/com/example/demo/repository/BossRepository.java",
+        "file:textcombat-api/src/main/java/com/example/demo/entity/Permission.java",
         "file:textcombat-api/src/main/java/com/example/demo/repository/PermissionRepository.java",
         "file:textcombat-api/src/main/java/com/example/demo/entity/GoldTransaction.java",
         "file:textcombat-api/src/main/java/com/example/demo/entity/Role.java",
         "file:textcombat-api/src/main/java/com/example/demo/entity/UsersEntity.java",
+        "file:textcombat-api/src/main/java/com/example/demo/repository/GoldTransactionRepository.java",
+        "file:textcombat-api/src/main/java/com/example/demo/repository/RoleRepository.java",
+        "file:textcombat-api/src/main/java/com/example/demo/repository/UserRepository.java",
         "file:textcombat-api/src/main/java/com/example/demo/entity/EquipmentSlot.java",
         "file:textcombat-api/src/main/java/com/example/demo/entity/Item.java",
         "file:textcombat-api/src/main/java/com/example/demo/entity/ItemType.java",
         "file:textcombat-api/src/main/java/com/example/demo/entity/UserEquipment.java",
         "file:textcombat-api/src/main/java/com/example/demo/entity/UserInventoryItem.java",
-        "file:textcombat-api/src/main/java/com/example/demo/entity/Boss.java",
-        "file:textcombat-api/src/main/java/com/example/demo/entity/Permission.java"
+        "file:textcombat-api/src/main/java/com/example/demo/repository/ItemRepository.java",
+        "file:textcombat-api/src/main/java/com/example/demo/repository/UserEquipmentRepository.java",
+        "file:textcombat-api/src/main/java/com/example/demo/repository/UserInventoryItemRepository.java"
       ]
     },
     {
       "id": "layer:backend-dto",
       "name": "後端 - DTO 傳輸物件層",
-      "description": "前後端 request / response payload 與內部事件 DTO (LoginRequest、RoomDTO、InventoryResponse、EnhancePreviewResponse、ShopBuyResponse 等)，作為 Controller 與 Service 之間的契約資料結構。",
+      "description": "對外請求／回應與 Redis 房間狀態的 DTO、enum 與 record，跨層傳遞資料。",
       "nodeIds": [
+        "file:textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java",
+        "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
+        "file:textcombat-api/src/main/java/com/example/demo/dto/RoomAction.java",
+        "file:textcombat-api/src/main/java/com/example/demo/dto/RoomDTO.java",
+        "file:textcombat-api/src/main/java/com/example/demo/dto/RoomMemberDTO.java",
+        "file:textcombat-api/src/main/java/com/example/demo/dto/RoomOutcome.java",
+        "file:textcombat-api/src/main/java/com/example/demo/dto/RoomPhase.java",
+        "file:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
         "file:textcombat-api/src/main/java/com/example/demo/dto/GoldGrantRequest.java",
         "file:textcombat-api/src/main/java/com/example/demo/dto/GoldTransactionDTO.java",
         "file:textcombat-api/src/main/java/com/example/demo/dto/LoginRequest.java",
@@ -6480,14 +6561,6 @@
         "file:textcombat-api/src/main/java/com/example/demo/dto/MaterialRequirementDTO.java",
         "file:textcombat-api/src/main/java/com/example/demo/dto/ShopBuyResponse.java",
         "file:textcombat-api/src/main/java/com/example/demo/dto/ShopItemDTO.java",
-        "file:textcombat-api/src/main/java/com/example/demo/dto/BossDTO.java",
-        "file:textcombat-api/src/main/java/com/example/demo/dto/InventoryResponse.java",
-        "file:textcombat-api/src/main/java/com/example/demo/dto/RoomAction.java",
-        "file:textcombat-api/src/main/java/com/example/demo/dto/RoomDTO.java",
-        "file:textcombat-api/src/main/java/com/example/demo/dto/RoomMemberDTO.java",
-        "file:textcombat-api/src/main/java/com/example/demo/dto/RoomOutcome.java",
-        "file:textcombat-api/src/main/java/com/example/demo/dto/RoomPhase.java",
-        "file:textcombat-api/src/main/java/com/example/demo/dto/RoomSummaryDTO.java",
         "file:textcombat-api/src/main/java/com/example/demo/dto/CreateRoomRequest.java",
         "file:textcombat-api/src/main/java/com/example/demo/dto/DiscardRequest.java",
         "file:textcombat-api/src/main/java/com/example/demo/dto/EnhanceRequest.java",
@@ -6501,23 +6574,28 @@
     {
       "id": "layer:backend-test",
       "name": "後端 - 單元測試層",
-      "description": "JUnit 5 + Mockito 測試 (AccountServiceImplTest、GoldServiceImplTest、EnhanceServiceImplTest、InventoryServiceImplTest、ShopServiceImplTest、RoomServiceImplTest / BroadcastTest)，含 WebSocket SimpMessagingTemplate broadcast 驗證。",
+      "description": "以 JUnit 5 + Mockito 純 mock 撰寫的 Service impl 單元測試與 context 冒煙測試。",
       "nodeIds": [
+        "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
+        "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
+        "file:textcombat-api/src/test/java/com/example/demo/DemoApplicationTests.java",
         "file:textcombat-api/src/test/java/com/example/demo/service/impl/AccountServiceImplTest.java",
         "file:textcombat-api/src/test/java/com/example/demo/service/impl/GoldServiceImplTest.java",
         "file:textcombat-api/src/test/java/com/example/demo/service/impl/EnhanceServiceImplTest.java",
         "file:textcombat-api/src/test/java/com/example/demo/service/impl/InventoryServiceImplTest.java",
-        "file:textcombat-api/src/test/java/com/example/demo/service/impl/ShopServiceImplTest.java",
-        "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java",
-        "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
-        "file:textcombat-api/src/test/java/com/example/demo/DemoApplicationTests.java"
+        "file:textcombat-api/src/test/java/com/example/demo/service/impl/ShopServiceImplTest.java"
       ]
     },
     {
       "id": "layer:frontend-pages",
       "name": "前端 - Pages 路由頁面層",
-      "description": "React Router v7 page component：Home / Login / Register / Admin / Inventory / Enhance / Shop / Lobby / Room，搭配 RequireAuth 守門、App.tsx 路由註冊與 main.tsx / CSS 應用程式入口。",
+      "description": "React 路由頁面、App 根元件、RequireAuth 守衛與全域樣式，構成使用者介面。",
       "nodeIds": [
+        "file:textcombat-web/src/App.css",
+        "file:textcombat-web/src/index.css",
+        "file:textcombat-web/src/App.tsx",
+        "file:textcombat-web/src/main.tsx",
+        "file:textcombat-web/src/components/RequireAuth.tsx",
         "file:textcombat-web/src/pages/HomePage.tsx",
         "file:textcombat-web/src/pages/LoginPage.tsx",
         "file:textcombat-web/src/pages/RegisterPage.tsx",
@@ -6527,17 +6605,13 @@
         "file:textcombat-web/src/pages/LobbyPage.tsx",
         "file:textcombat-web/src/pages/RoomPage.tsx",
         "file:textcombat-web/src/pages/ShopPage.tsx",
-        "file:textcombat-web/src/components/RequireAuth.tsx",
-        "file:textcombat-web/src/App.tsx",
-        "file:textcombat-web/src/main.tsx",
-        "file:textcombat-web/src/App.css",
-        "file:textcombat-web/src/index.css"
+        "file:textcombat-web/index.html"
       ]
     },
     {
       "id": "layer:frontend-api-store",
       "name": "前端 - API Client 與 Zustand Store",
-      "description": "axios apiClient (自動注入 JWT、401 自動登出)、各 domain API 模組 (auth / admin / boss / enhance / gold / inventory / room / shop)、@stomp/stompjs WebSocket client，以及 zustand authStore (持久化 token + user 到 localStorage)。",
+      "description": "封裝 /api 與 /ws 呼叫的 axios client、各 domain API 模組與持久化 JWT 的 zustand authStore。",
       "nodeIds": [
         "file:textcombat-web/src/api/client.ts",
         "file:textcombat-web/src/api/auth.ts",
@@ -6555,134 +6629,172 @@
     {
       "id": "layer:project-config-docs",
       "name": "專案設定與文件",
-      "description": "前端 Vite / TypeScript / ESLint / package.json 設定、後端 Maven pom.xml / .gitattributes、.understand-anything 設定，以及 CLAUDE.md / textcombat-web README 等專案說明文件。",
+      "description": "monorepo 層級的建置／工具設定（pom.xml、tsconfig、vite、eslint、package.json）、專案文件與工具設定檔。",
       "nodeIds": [
+        "document:CLAUDE.md",
+        "file:textcombat-api/.gitattributes",
+        "config:textcombat-api/pom.xml",
+        "file:textcombat-web/eslint.config.js",
+        "file:textcombat-web/vite.config.ts",
         "document:textcombat-web/README.md",
-        "file:textcombat-web/index.html",
         "config:textcombat-web/package.json",
         "config:textcombat-web/tsconfig.json",
         "config:textcombat-web/tsconfig.app.json",
         "config:textcombat-web/tsconfig.node.json",
-        "file:textcombat-web/eslint.config.js",
-        "config:textcombat-web/vite.config.ts",
-        "config:textcombat-api/.gitattributes",
-        "config:textcombat-api/pom.xml",
         "config:.understand-anything/.understandignore",
-        "config:.understand-anything/config.json",
-        "document:CLAUDE.md"
+        "config:.understand-anything/config.json"
       ]
     }
   ],
   "tour": [
     {
       "order": 1,
-      "title": "專案總覽：從 CLAUDE.md 開始",
-      "description": "整個 monorepo 沒有 root README，CLAUDE.md 才是權威說明文件。它一次說清楚 textcombat-api（Spring Boot 4 / Java 21 / Maven）與 textcombat-web（Vite + React 19 + TS）兩個子專案的啟動方式、JWT 認證流程、SQL/Redis 狀態切分、WebSocket/STOMP 即時更新與測試慣例。先讀這份文件，後面每一步都會對應到它描述的某個架構決策。",
+      "title": "專案總覽與導讀",
+      "description": "textcombat 是一個文字戰鬥遊戲的 monorepo：textcombat-api（Spring Boot 4 後端）與 textcombat-web（React 19 前端）並列開發。本專案沒有根目錄 README，CLAUDE.md 才是權威指引文件，它一次說清楚 monorepo 結構、後端三大外部依賴（PostgreSQL 真相來源、Redis 戰鬥狀態、Kafka 大廳廣播）、認證流程與 service 分層慣例。先讀它，就能拿到接下來整趟導覽的地圖。",
       "nodeIds": [
         "document:CLAUDE.md"
       ]
     },
     {
       "order": 2,
-      "title": "後端啟動與基礎設定",
-      "description": "DemoApplication 是 Spring Boot 後端的進入點，application.properties 則定義了 HTTPS 8443、PostgreSQL、Redis 連線與 JPA ddl-auto=validate（schema 變更只能在 DB 端做）。敏感值如 POSTGRES_PASSWORD、JWT_SECRET 透過 .env 注入，避免被 hard-code 進原始碼。這一步建立後端跑起來的最小配置全貌。",
+      "title": "後端進入點與建置設定",
+      "description": "DemoApplication 是 Spring Boot 的啟動點，一行 SpringApplication.run 拉起整個服務；pom.xml 則揭示了這個服務由哪些積木組成 —— 除了 JPA、JWT、WebSocket，最近還新增了 Redisson（分散式鎖）與 spring-kafka（大廳事件廣播），這兩個依賴正是本專案最新、也最值得理解的架構演進。從這裡開始，我們順著啟動流程往內看基礎設施如何被裝配。",
       "nodeIds": [
         "file:textcombat-api/src/main/java/com/example/demo/DemoApplication.java",
-        "config:textcombat-api/src/main/resources/application.properties",
         "config:textcombat-api/pom.xml"
-      ]
+      ],
+      "languageLesson": "Maven 的 pom.xml 以 <dependency> 宣告式管理依賴；Spring Boot starter（如 spring-boot-starter-web）會把一整組相關套件版本一次帶進來，由 parent BOM 統一管理版本，避免手動對齊每個傳遞依賴。"
     },
     {
       "order": 3,
-      "title": "WebSocket / STOMP 即時通道",
-      "description": "WebSocketConfig 註冊 /ws 端點並啟用 in-memory simple broker 配 /topic，這是後續房間與大廳即時更新的傳輸層。JWT 認證在 STOMP handshake 階段以 query string ?token=xxx 完成（不是 header），驗證後把 StompPrincipal 綁到 session，讓 convertAndSendToUser 之類的 user-scoped 推送可以運作。後面第 5 步看到的 /topic/room/<id>、/topic/lobby 廣播都是透過這條通道發出。",
+      "title": "基礎設施設定：Postgres / Redis / Kafka",
+      "description": "承接 Step 2 的依賴清單，這一站看它們如何被連起來。application.properties 集中了 PostgreSQL、Redis、JWT、HTTPS keystore 與 Kafka（bootstrap-servers 與 consumer group textcombat-lobby）的連線；RedisConfig 提供存放 RoomDTO 的 roomRedisTemplate；RedissonConfig 以 single-server 模式建立 RedissonClient 供房間層級分散式鎖使用。CLAUDE.md 提到的「Kafka 或 Redis 起不來，啟動就會失敗」就是因為這些 bean 在啟動時即建立連線。",
       "nodeIds": [
-        "file:textcombat-api/src/main/java/com/example/demo/config/WebSocketConfig.java"
-      ]
+        "config:textcombat-api/src/main/resources/application.properties",
+        "file:textcombat-api/src/main/java/com/example/demo/config/RedisConfig.java",
+        "file:textcombat-api/src/main/java/com/example/demo/config/RedissonConfig.java"
+      ],
+      "languageLesson": "properties 檔以 ${POSTGRES_PASSWORD}/${JWT_SECRET} 佔位符引用機密，實際值透過 spring.config.import 從 .env 載入而非寫死 —— diff 裡若出現 hard-coded 機密就是 regression。"
     },
     {
       "order": 4,
-      "title": "認證與權限：JWT interceptor + AOP 風格註解",
-      "description": "JwtAuthInterceptor 註冊在 /api/**，每個 request 都會解 Bearer token、把 UsersEntity 放進 CurrentUserHolder ThreadLocal，再依 @Public 放行或依 @RequirePermission(\"CODE\") 比對 user.hasPermission；afterCompletion 一定會清掉 ThreadLocal。JwtUtil 負責簽發解析、CurrentUserHolder 是 controller 取得當前 user 的唯一入口（永遠不要從 client 傳 userId）。這套設計把驗證集中在一處，controller 與 service 都不必再各自處理 token。",
+      "title": "認證流程：JWT 攔截器與權限檢查",
+      "description": "WebMvcConfig 把 JwtAuthInterceptor 註冊到 /api/**，於是每個 API 請求都先過認證關卡：JwtUtil 解 Bearer token，把 UsersEntity 放進 CurrentUserHolder（ThreadLocal），即使 @Public 端點也會機會性地讀取 current user，其餘端點則需登入並用 @RequirePermission 比對權限。Controller 永遠透過 CurrentUserHolder.get() 取得使用者，絕不從 client 傳 userId。這是後端所有業務邏輯的安全前提。",
       "nodeIds": [
+        "file:textcombat-api/src/main/java/com/example/demo/security/WebMvcConfig.java",
         "file:textcombat-api/src/main/java/com/example/demo/security/JwtAuthInterceptor.java",
-        "file:textcombat-api/src/main/java/com/example/demo/security/CurrentUserHolder.java",
         "file:textcombat-api/src/main/java/com/example/demo/security/JwtUtil.java",
+        "file:textcombat-api/src/main/java/com/example/demo/security/CurrentUserHolder.java",
         "file:textcombat-api/src/main/java/com/example/demo/security/RequirePermission.java"
       ],
-      "languageLesson": "ThreadLocal 在 Servlet 容器中以「一個 request = 一個 thread」為前提，把 current user 暫存起來供同一 thread 的後續層讀取。關鍵在於 afterCompletion 必須清掉 ThreadLocal，否則 thread pool 重用時會把上一個 request 的 user 洩漏給下一個 request。"
+      "languageLesson": "ThreadLocal 讓「當前使用者」在同一個請求執行緒內隨處可取，免去逐層傳參；但 Servlet 容器會重用 thread pool 的執行緒，所以務必在 interceptor 的 afterCompletion 清掉 ThreadLocal，否則會造成跨請求的記憶體洩漏與身分污染。"
     },
     {
       "order": 5,
-      "title": "遊戲房狀態核心：RoomServiceImpl 與 SQL/Redis 切分",
-      "description": "PostgreSQL 是長期真相來源（user、物品、金幣），但 RoomDTO 這種短暫戰鬥狀態完全只活在 Redis（key=room:<id>、TTL 30 分鐘；lobby:rooms Set 列出開放房）。RoomServiceImpl 用 synchronized((\"__room_lock__:\" + roomId).intern()) 做每房層級的並發控制，並在每次 state 變動後 broadcast 到 /topic/room/<id> 與 /topic/lobby（透過第 3 步的 broker）。注意：這個鎖只在單一後端 instance 有效，水平擴展時必須換成分散式鎖。",
+      "title": "Controller 到 Service 分層與全域例外",
+      "description": "通過認證後，請求進入 controller。以 AccountController（註冊／登入／查自己／列使用者）為例，它把工作委派給 service，自己只負責組裝 DTO。Service 以丟出 IllegalArgumentException（→400）或 IllegalStateException（→409）來表達錯誤，由 GlobalExceptionHandler 統一轉成 HTTP 狀態碼，因此 controller 不必對這些情況包 try/catch（AccountController 是早於 handler 寫成的歷史例外）。這個「薄 controller + 拋例外 + 集中處理」的模式貫穿整個後端。",
       "nodeIds": [
-        "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
-        "file:textcombat-api/src/main/java/com/example/demo/controller/RoomController.java"
-      ],
-      "languageLesson": "String.intern() 讓相同內容的 String reference 指向同一個 JVM-wide 實體，這樣 synchronized(stringLockKey.intern()) 才能讓不同 request 中產生的同名 key 鎖到同一個 monitor。這是只在單 process 內可靠的小技巧——跨 instance 必須改用 Redisson 之類的分散式鎖。"
-    },
-    {
-      "order": 6,
-      "title": "金幣交易與強化：唯一變更入口的設計",
-      "description": "GoldService.changeGold 是改使用者金幣的唯一合法入口，同 transaction 寫 GoldTransaction 紀錄與更新餘額，amount=0、空 reason、結餘為負都會被擋。EnhanceServiceImpl 示範了業務複雜度——成功率/素材數量/失敗效果規則表內嵌在 service，並在單一 transaction 內扣金幣、扣素材、更新等級或刪除裝備。錯誤透過拋 IllegalArgumentException（→400）、IllegalStateException（→409），由 GlobalExceptionHandler 統一轉成 HTTP response。",
-      "nodeIds": [
-        "file:textcombat-api/src/main/java/com/example/demo/service/impl/GoldServiceImpl.java",
-        "file:textcombat-api/src/main/java/com/example/demo/service/impl/EnhanceServiceImpl.java",
+        "file:textcombat-api/src/main/java/com/example/demo/controller/AccountController.java",
         "file:textcombat-api/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java"
       ]
     },
     {
-      "order": 7,
-      "title": "REST 介面：Account / Inventory / Enhance Controller",
-      "description": "Controller 層是 HTTP REST 表面，全部走 @RestController + 細粒度 @RequirePermission 註解（註冊登入標 @Public 放行）。AccountController 處理註冊／登入／取得自己資料；InventoryController 提供 list、equip、unequip、use、discard；EnhanceController 暴露 preview 與 enhance 兩個端點。Controller 都透過 CurrentUserHolder.get() 拿當前 user，不接收前端傳來的 userId——這是第 4 步那套 interceptor 設計直接帶來的好處。",
+      "order": 6,
+      "title": "核心領域邏輯：金幣與強化",
+      "description": "進入遊戲的業務核心。GoldServiceImpl 的 changeGold 是唯一合法改金幣的入口：它在同一個 transaction 內同時寫餘額與 GoldTransaction 紀錄，負值代表花、正值代表賺，reason 必填且 amount 為 0 會被擋。EnhanceServiceImpl 則內嵌了成功率／素材數量／失敗效果表（successRateFor、materialQtyFor、failEffectFor），用 ENHANCE_STONE 當強化素材。理解這兩個服務，就掌握了遊戲經濟與養成的規則來源。",
       "nodeIds": [
-        "file:textcombat-api/src/main/java/com/example/demo/controller/AccountController.java",
-        "file:textcombat-api/src/main/java/com/example/demo/controller/InventoryController.java",
-        "file:textcombat-api/src/main/java/com/example/demo/controller/EnhanceController.java"
+        "file:textcombat-api/src/main/java/com/example/demo/service/GoldService.java",
+        "file:textcombat-api/src/main/java/com/example/demo/service/impl/GoldServiceImpl.java",
+        "file:textcombat-api/src/main/java/com/example/demo/service/impl/EnhanceServiceImpl.java"
+      ],
+      "languageLesson": "把「改餘額」收斂成單一入口（changeGold）並包在 @Transactional 內，是確保餘額與流水帳永遠一致的常見手法 —— 任何繞過此入口直接改 gold 欄位的程式碼都會破壞審計可追溯性。"
+    },
+    {
+      "order": 7,
+      "title": "戰鬥引擎：房間生命週期與回合推進",
+      "description": "RoomServiceImpl 是全專案最複雜、也最能體現架構的一塊。房間狀態以 RoomDTO 序列化存進 Redis（進行中 TTL 30 分、結束 3 分），完全沒有 DB table —— Redis key 一掉房間就沒了。act 是玩家行動的唯一入口，依 RoomAction 分派攻擊／喝藥／跳過後呼叫 advanceIfRoundDone；只有當所有存活且未離開的成員本回合都行動過，才會進 BOSS 階段並判定勝負，勝利時透過 Step 6 的 GoldService 發放獎勵金幣。",
+      "nodeIds": [
+        "file:textcombat-api/src/main/java/com/example/demo/service/impl/RoomServiceImpl.java",
+        "file:textcombat-api/src/main/java/com/example/demo/dto/RoomDTO.java",
+        "file:textcombat-api/src/main/java/com/example/demo/controller/RoomController.java"
       ]
     },
     {
       "order": 8,
-      "title": "前端進入點與路由註冊",
-      "description": "main.tsx 用 React 19 的 createRoot 把 App 掛到 #root，App.tsx 用 react-router-dom v7 的 BrowserRouter 註冊所有頁面路由，並以 RequireAuth 包住需登入的頁面。RequireAuth 從第 9 步的 zustand authStore 讀 token，沒登入就導向 /login。這套設計把「哪些頁面需要登入」集中在 App.tsx 一處宣告，新增頁面時不會散落各地。",
+      "title": "分散式架構（一）：Redisson 房間鎖與 WebSocket 即時推送",
+      "description": "這是本專案最新、最具教學價值的演進核心。多人同房會並發呼叫 joinRoom／leaveRoom／act，RoomServiceImpl 用 Redisson 的 redisson.getLock(\"room_lock:\"+roomId) 配 try/finally unlock 做「每房一把鎖」的分散式鎖，跨 instance 生效，因此水平擴展也安全（舊的 JVM 內鎖 lockFor 已棄用）。改完狀態後，房間更新直接 broadcast 到 /topic/room/<id>；WebSocketConfig 開放 /ws 端點、用 in-memory simple broker，並在 handshake 階段以 query string ?token=... 驗 JWT、綁定 StompPrincipal。",
       "nodeIds": [
-        "file:textcombat-web/src/main.tsx",
-        "file:textcombat-web/src/App.tsx",
-        "file:textcombat-web/src/components/RequireAuth.tsx"
-      ]
+        "file:textcombat-api/src/main/java/com/example/demo/config/WebSocketConfig.java"
+      ],
+      "languageLesson": "distributed lock（分散式鎖）解決的是「多個 JVM instance 同時改同一份共享狀態」的競態 —— JVM 內的 synchronized/intern() 鎖只在單一行程內有效，水平擴展後就失靈，必須改用 Redis（Redisson RLock）這類外部協調者，並務必在 finally 內 unlock 以免死鎖。"
     },
     {
       "order": 9,
-      "title": "前端認證 store 與 API client",
-      "description": "authStore 是 zustand store，存 token + user 並持久化到 localStorage，是整個前端最被依賴的模組（fan-in=11）。apiClient（axios 實例）會自動從 store 注入 Bearer JWT，遇 401 自動清掉 store 並登出——對應後端第 4 步的 JwtAuthInterceptor。auth.ts 則是 login/register/me 三個端點的薄包裝。三者組合起來形成「登入→存 token→所有後續 request 自動帶 token→過期自動登出」的閉環。",
+      "title": "分散式架構（二）：Kafka 事件驅動的大廳廣播",
+      "description": "單房推送可以直接 broadcast，但大廳（lobby）橫跨所有 instance，必須走 Kafka 才能一致。當房間開／關／更新時，RoomServiceImpl 委派 LobbyEventPublisher 發 LobbyEvent 到 Kafka topic，並以 roomId 當 partition key 保證同房事件順序；每個 instance 的 LobbyEventConsumer（@KafkaListener）各自收到事件後，呼叫 listOpen() 並 convertAndSend 到自己連著的前端 /topic/lobby。KafkaConfig 透過 TRUSTED_PACKAGES 白名單反序列化 LobbyEvent。這正是「單房直推、大廳走 Kafka」設計差異的精髓。",
       "nodeIds": [
-        "file:textcombat-web/src/store/authStore.ts",
-        "file:textcombat-web/src/api/client.ts",
-        "file:textcombat-web/src/api/auth.ts"
+        "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventPublisher.java",
+        "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEvent.java",
+        "file:textcombat-api/src/main/java/com/example/demo/messaging/LobbyEventConsumer.java",
+        "file:textcombat-api/src/main/java/com/example/demo/config/KafkaConfig.java"
       ],
-      "languageLesson": "zustand 的 store 是一個 hook：呼叫 useAuthStore(s => s.token) 會訂閱該欄位、欄位變動時自動 re-render。把 token 同時放在 React state（給 UI）與 localStorage（給 reload 後復原），是 SPA 常見的雙寫模式；persist middleware 替你處理同步。"
+      "languageLesson": "Kafka 用 partition key 決定訊息落在哪個 partition，同一 key（此處 roomId）的訊息保證有序；consumer group（textcombat-lobby）讓每個 instance 都收到同一份 broadcast。反序列化的 TRUSTED_PACKAGES 白名單則防止任意類別反序列化的安全風險。"
     },
     {
       "order": 10,
-      "title": "WebSocket client 與代表性頁面",
-      "description": "ws.ts 用 @stomp/stompjs 建立 STOMP client，連線時把 authStore 的 token 接在 ?token= 後面，對應後端第 3 步 handshake 階段的驗證方式。LobbyPage 訂閱 /topic/lobby 顯示房間列表，RoomPage 訂閱 /topic/room/<id> 收戰鬥狀態更新，InventoryPage 展示背包與裝備格——這三頁覆蓋了「房間瀏覽 → 進房戰鬥 → 戰利品管理」這條主要遊戲動線。",
+      "title": "資料持久層：Entity、Repository 與 RBAC",
+      "description": "PostgreSQL 是真相來源。UsersEntity 是核心 entity（帳號、passwordHash、gold、@Version 樂觀鎖），透過 user_roles 多對多關聯 Role，Role 再以 role_permissions 關聯 Permission，構成 role→permission 的 RBAC 模型；getPermissionCodes 把這層關聯攤平成集合，正是 Step 4 @RequirePermission 比對的依據。GoldTransaction 記錄 Step 6 每筆金幣異動，各 Repository 則是 Spring Data JPA 的資料存取介面。注意 ddl-auto=validate —— schema 只在資料庫端變更。",
       "nodeIds": [
-        "file:textcombat-web/src/api/ws.ts",
-        "file:textcombat-web/src/pages/LobbyPage.tsx",
-        "file:textcombat-web/src/pages/RoomPage.tsx",
-        "file:textcombat-web/src/pages/InventoryPage.tsx"
-      ]
+        "file:textcombat-api/src/main/java/com/example/demo/entity/UsersEntity.java",
+        "file:textcombat-api/src/main/java/com/example/demo/entity/Role.java",
+        "file:textcombat-api/src/main/java/com/example/demo/entity/Permission.java",
+        "file:textcombat-api/src/main/java/com/example/demo/entity/GoldTransaction.java",
+        "file:textcombat-api/src/main/java/com/example/demo/repository/UserRepository.java"
+      ],
+      "languageLesson": "JPA 的 @Version 提供樂觀鎖：更新時比對版本號，若被他人先改過則拋例外，適合衝突少的場景；相對地 Step 8 的 Redisson 分散式鎖是悲觀鎖，適合房間這種高並發、需互斥的短暫狀態。"
     },
     {
       "order": 11,
-      "title": "測試慣例：純 Mockito service test + WebSocket broadcast 驗證",
-      "description": "後端測試一律 JUnit 5 + Mockito + AssertJ，不載 Spring context——GoldServiceImplTest 是樣板（命名 methodName_scenario_expectedBehavior、@DisplayName 寫人類可讀的 caseN）。RoomServiceImplTest 覆蓋核心戰鬥/回合邏輯；RoomServiceImplBroadcastTest 特別示範如何 mock SimpMessagingTemplate、verify convertAndSend 的呼叫，把第 5 步的 WebSocket 副作用納入單元測試保護範圍。新增 service 測試時請照這個風格寫。",
+      "title": "後端測試慣例",
+      "description": "Service impl 的測試以 JUnit 5 + Mockito 純 mock 撰寫，不載 Spring context，assertion 用 AssertJ；測試名遵循 methodName_scenario_expectedBehavior 並以 @DisplayName 寫人類可讀標籤。RoomServiceImplTest 涵蓋建房／加入／離開／行動／回合與勝負結算的核心邏輯，RoomServiceImplBroadcastTest 則 mock SimpMessagingTemplate 與 LobbyEventPublisher 來驗證 Step 8、9 的 WebSocket 與 Kafka 廣播行為 —— 這也是讀懂分散式推送流程的最佳對照。",
       "nodeIds": [
-        "file:textcombat-api/src/test/java/com/example/demo/service/impl/GoldServiceImplTest.java",
         "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplTest.java",
         "file:textcombat-api/src/test/java/com/example/demo/service/impl/RoomServiceImplBroadcastTest.java"
       ]
+    },
+    {
+      "order": 12,
+      "title": "前端進入點、路由與建置",
+      "description": "切換到 textcombat-web。main.tsx 用 createRoot 掛載 App；App.tsx 以 react-router-dom v7 註冊所有路由，並用 RequireAuth 守住需登入的頁面。vite.config.ts 是前後端的橋樑：把 /api 與 /ws proxy 到 https://localhost:8443，並設 secure:false 以接受後端的 self-signed 憑證 —— 所以前端要能跑，後端必須先在 8443 起來。",
+      "nodeIds": [
+        "file:textcombat-web/src/main.tsx",
+        "file:textcombat-web/src/App.tsx",
+        "file:textcombat-web/src/components/RequireAuth.tsx",
+        "file:textcombat-web/vite.config.ts"
+      ],
+      "languageLesson": "React Router v7 以巢狀 <Route> 宣告路由樹，搭配像 RequireAuth 這種「包裹元件」做路由守衛：在 render 時檢查登入狀態，未登入則 <Navigate> 導回登入頁，把授權邏輯與頁面內容解耦。"
+    },
+    {
+      "order": 13,
+      "title": "前端 API Client 與 Auth Store",
+      "description": "所有 HTTP 都走 client.ts 的 apiClient（axios），它自動從 zustand 的 authStore 注入 JWT、遇 401 自動登出；authStore 把 token + user 持久化到 localStorage，是前端最被廣泛依賴的模組之一。各 domain（auth、shop、room、inventory…）各一支 API 檔對應後端 controller。這一層把 Step 4 的 JWT 認證與 Step 5 的 REST 端點，從前端視角閉環起來。",
+      "nodeIds": [
+        "file:textcombat-web/src/api/client.ts",
+        "file:textcombat-web/src/store/authStore.ts",
+        "file:textcombat-web/src/api/room.ts"
+      ],
+      "languageLesson": "zustand 是極簡的 React 狀態管理：用 create() 定義 store，元件以 hook 訂閱所需切片；搭配 persist middleware 可自動同步到 localStorage，讓 JWT 在重新整理後仍保留。"
+    },
+    {
+      "order": 14,
+      "title": "前端即時對戰：STOMP 訂閱大廳與房間",
+      "description": "導覽的收尾，回到分散式架構的前端消費端。ws.ts 用 @stomp/stompjs 建立 WebSocket 連線並訂閱 /topic/lobby 與 /topic/room/<roomId>，正好對應 Step 8 的房間直推與 Step 9 的 Kafka 大廳廣播：LobbyPage 即時顯示開放房間清單，RoomPage 即時反映戰鬥狀態。至此，從後端 Redisson 鎖、Kafka 事件、WebSocket 推送，到前端 STOMP 訂閱與畫面更新的完整即時鏈路，就全部串起來了。",
+      "nodeIds": [
+        "file:textcombat-web/src/api/ws.ts",
+        "file:textcombat-web/src/pages/LobbyPage.tsx",
+        "file:textcombat-web/src/pages/RoomPage.tsx"
+      ],
+      "languageLesson": "STOMP 是架在 WebSocket 之上的訊息協定，提供 SUBSCRIBE/SEND 等語意；前端訂閱某個 destination（/topic/...），後端 broker 一推送該 destination，所有訂閱者就同步收到 —— 這正是多人遊戲即時同步的基礎。"
     }
   ]
 }
