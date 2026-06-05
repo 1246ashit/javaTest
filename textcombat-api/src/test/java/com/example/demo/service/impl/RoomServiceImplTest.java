@@ -19,6 +19,9 @@ import com.example.demo.repository.UserInventoryItemRepository;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.service.GoldService;
 import com.example.demo.service.InventoryService;
+import com.example.demo.service.battle.AttackStrategy;
+import com.example.demo.service.battle.PotionStrategy;
+import com.example.demo.service.battle.SkipStrategy;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -96,9 +99,14 @@ class RoomServiceImplTest {
         roomService = new RoomServiceImpl(
                 redis, stringRedis,
                 bossRepo, userRepo,
-                inventoryService, inventoryRepo, equipmentRepo, itemRepo,
+                inventoryService,
                 goldService, messaging,
-                redisson,lobbyEventPublisher);
+                redisson, lobbyEventPublisher,
+                // 純 mock 測試沒有 Spring，手動組策略清單；PotionStrategy 用 mock repo
+                List.of(
+                        new AttackStrategy(),
+                        new SkipStrategy(),
+                        new PotionStrategy(inventoryRepo, itemRepo, equipmentRepo)));
     }
 
     // ============================================================

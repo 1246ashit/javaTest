@@ -7,6 +7,8 @@ import com.example.demo.repository.*;
 import com.example.demo.service.GoldService;
 import com.example.demo.service.InventoryService;
 import com.example.demo.service.RoomService;
+import com.example.demo.service.battle.ActionStrategy;
+import com.example.demo.service.battle.BattleText;
 
 import org.redisson.api.RedissonClient;
 import org.redisson.api.RLock;
@@ -21,6 +23,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 @Service
 public class RoomServiceImpl implements RoomService {
@@ -38,9 +41,6 @@ public class RoomServiceImpl implements RoomService {
     private final BossRepository bossRepo;
     private final UserRepository userRepo;
     private final InventoryService inventoryService;
-    private final UserInventoryItemRepository inventoryRepo;
-    private final UserEquipmentRepository equipmentRepo;
-    private final ItemRepository itemRepo;
     private final GoldService goldService;
     private final SimpMessagingTemplate messaging;
 
@@ -48,31 +48,33 @@ public class RoomServiceImpl implements RoomService {
 
     private final LobbyEventPublisher lobbyEventPublisher;
 
+    /** action -> 對應策略；啟動時由所有 ActionStrategy bean 收集而成。 */
+    private final Map<RoomAction, ActionStrategy> strategies;
+
     public RoomServiceImpl(RedisTemplate<String, RoomDTO> redis,
             RedisTemplate<String, String> stringRedis,
             BossRepository bossRepo,
             UserRepository userRepo,
             InventoryService inventoryService,
-            UserInventoryItemRepository inventoryRepo,
-            UserEquipmentRepository equipmentRepo,
-            ItemRepository itemRepo,
             GoldService goldService,
             SimpMessagingTemplate messaging,
             RedissonClient redisson,
-            LobbyEventPublisher lobbyEventPublisher
+            LobbyEventPublisher lobbyEventPublisher,
+            List<ActionStrategy> strategyList
         ) {
         this.redis = redis;
         this.stringRedis = stringRedis;
         this.bossRepo = bossRepo;
         this.userRepo = userRepo;
         this.inventoryService = inventoryService;
-        this.inventoryRepo = inventoryRepo;
-        this.equipmentRepo = equipmentRepo;
-        this.itemRepo = itemRepo;
         this.goldService = goldService;
         this.messaging = messaging;
         this.redisson = redisson;
         this.lobbyEventPublisher = lobbyEventPublisher;
+        // Spring 把所有 @Component 的 ActionStrategy 注入成 List，這裡轉成查表用的 Map。
+        // 同一個 action 有兩個策略會在啟動時直接拋錯（fail-fast）。
+        this.strategies = strategyList.stream()
+                .collect(Collectors.toMap(ActionStrategy::action, s -> s));
     }
 
     private String roomKey(String roomId) {
@@ -217,7 +219,7 @@ public class RoomServiceImpl implements RoomService {
             me.setFled(true);
             me.setAlive(false);
             me.setActedThisRound(true);
-            r.getLog().add(String.format("第 %d 回合：%s 離開了戰鬥", r.getRound(), displayOf(me)));
+            r.getLog().add(String.format("第 %d 回合：%s 離開了戰鬥", r.getRound(), BattleText.displayOf(me)));
 
             // 結算/推進
             if (allLeft(r)) {
@@ -262,11 +264,10 @@ public class RoomServiceImpl implements RoomService {
             if (me.isActedThisRound())
                 throw new IllegalStateException("你本回合已行動過");
 
-            switch (action) {
-                case ATTACK -> doAttack(r, me);
-                case USE_POTION -> doPotion(r, me, userId, inventoryItemId);
-                case SKIP -> doSkip(r, me);
-            }
+            ActionStrategy strategy = strategies.get(action);
+            if (strategy == null)
+                throw new IllegalArgumentException("不支援的行動: " + action);
+            strategy.execute(r, me, new ActionContext(userId, inventoryItemId));
             me.setActedThisRound(true);
 
             // 玩家可能直接打死 BOSS
@@ -318,58 +319,6 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public RoomDTO getRoom(String roomId) {
         return load(roomId);
-    }
-
-    // ====================================================
-    // 行動實作
-    // ====================================================
-
-    private void doAttack(RoomDTO r, RoomMemberDTO me) {
-        int dmg = Math.max(1, me.getAttack() - r.getBossDefense());
-        int newHp = Math.max(0, r.getBossHp() - dmg);
-        r.getLog().add(String.format("第 %d 回合：%s 攻擊造成 %d 傷害（%s HP %d → %d）",
-                r.getRound(), displayOf(me), dmg, r.getBossName(), r.getBossHp(), newHp));
-        r.setBossHp(newHp);
-    }
-
-    private void doPotion(RoomDTO r, RoomMemberDTO me, Long userId, Long inventoryItemId) {
-        if (inventoryItemId == null) {
-            throw new IllegalArgumentException("USE_POTION 需要 inventoryItemId");
-        }
-        UserInventoryItem inv = inventoryRepo.findById(inventoryItemId)
-                .orElseThrow(() -> new IllegalArgumentException("背包物品不存在"));
-        if (!inv.getUserId().equals(userId)) {
-            throw new IllegalStateException("不是你的物品");
-        }
-        Item item = itemRepo.findById(inv.getItemId())
-                .orElseThrow(() -> new IllegalStateException("物品資料異常"));
-        if (item.getType() != ItemType.CONSUMABLE) {
-            throw new IllegalArgumentException("不是消耗品");
-        }
-        Integer heal = item.getHealAmount();
-        if (heal == null || heal <= 0) {
-            throw new IllegalArgumentException("此物品無回血效果");
-        }
-
-        int remain = inv.getQuantity() - 1;
-        if (remain <= 0) {
-            equipmentRepo.findByUserIdAndInventoryItemId(userId, inventoryItemId)
-                    .ifPresent(equipmentRepo::delete);
-            inventoryRepo.delete(inv);
-        } else {
-            inv.setQuantity(remain);
-            inventoryRepo.save(inv);
-        }
-
-        int before = me.getHp();
-        int after = Math.min(me.getMaxHp(), before + heal);
-        me.setHp(after);
-        r.getLog().add(String.format("第 %d 回合：%s 喝 %s 回 %d HP（%d → %d）",
-                r.getRound(), displayOf(me), item.getName(), after - before, before, after));
-    }
-
-    private void doSkip(RoomDTO r, RoomMemberDTO me) {
-        r.getLog().add(String.format("第 %d 回合：%s 選擇跳過", r.getRound(), displayOf(me)));
     }
 
     // ====================================================
@@ -430,11 +379,11 @@ public class RoomServiceImpl implements RoomService {
         int dmg = Math.max(1, r.getBossAttack() - target.getDefense());
         int newHp = Math.max(0, target.getHp() - dmg);
         r.getLog().add(String.format("第 %d 回合：%s 攻擊 %s，造成 %d 傷害（%d → %d）",
-                r.getRound(), r.getBossName(), displayOf(target), dmg, target.getHp(), newHp));
+                r.getRound(), r.getBossName(), BattleText.displayOf(target), dmg, target.getHp(), newHp));
         target.setHp(newHp);
         if (newHp == 0) {
             target.setAlive(false);
-            r.getLog().add(displayOf(target) + " 倒下了");
+            r.getLog().add(BattleText.displayOf(target) + " 倒下了");
         }
         // BOSS 攻擊完判斷全死
         boolean anyoneAlive = r.getMembers().stream()
@@ -457,7 +406,7 @@ public class RoomServiceImpl implements RoomService {
                             m.getUserId(), reward, "BATTLE_REWARD", r.getBossCode(),
                             "擊敗 " + r.getBossName());
                     r.getLog().add(String.format("%s 獲得金幣 💰 +%d（餘額 %d）",
-                            displayOf(m), reward, bal));
+                            BattleText.displayOf(m), reward, bal));
                 } catch (Exception e) {
                     log.warn("發放戰鬥獎勵失敗 userId={}, err={}", m.getUserId(), e.getMessage());
                 }
@@ -508,9 +457,5 @@ public class RoomServiceImpl implements RoomService {
 
     private static String displayOf(UsersEntity u) {
         return u.getDisplayName() != null && !u.getDisplayName().isBlank() ? u.getDisplayName() : u.getUsername();
-    }
-
-    private static String displayOf(RoomMemberDTO m) {
-        return m.getDisplayName() != null && !m.getDisplayName().isBlank() ? m.getDisplayName() : m.getUsername();
     }
 }

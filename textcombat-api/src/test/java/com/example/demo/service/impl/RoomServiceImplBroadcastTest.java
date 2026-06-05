@@ -12,6 +12,9 @@ import com.example.demo.messaging.LobbyEventPublisher;
 import com.example.demo.repository.*;
 import com.example.demo.service.GoldService;
 import com.example.demo.service.InventoryService;
+import com.example.demo.service.battle.AttackStrategy;
+import com.example.demo.service.battle.PotionStrategy;
+import com.example.demo.service.battle.SkipStrategy;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -94,13 +97,14 @@ class RoomServiceImplBroadcastTest {
                                 bossRepo,
                                 userRepo,
                                 inventoryService,
-                                inventoryRepo,
-                                equipmentRepo,
-                                itemRepo,
                                 goldService,
                                 messaging,
                                 redisson,
-                                lobbyEventPublisher);
+                                lobbyEventPublisher,
+                                List.of(
+                                                new AttackStrategy(),
+                                                new SkipStrategy(),
+                                                new PotionStrategy(inventoryRepo, itemRepo, equipmentRepo)));
         }
 
         // joinRoom
